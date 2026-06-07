@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabase } from '@/lib/supabase'
 
+async function sendInstagramReply(recipientId: string, message: string) {
+  const response = await fetch(
+    `https://graph.instagram.com/v21.0/me/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.INSTAGRAM_ACCESS_TOKEN}`
+      },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        message: { text: message }
+      })
+    }
+  )
+  const data = await response.json()
+  console.log('Instagram reply response:', JSON.stringify(data))
+  return data
+}
+
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
@@ -21,7 +41,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-
   console.log('Webhook received:', JSON.stringify(body, null, 2))
 
   try {
@@ -101,6 +120,7 @@ Rules:
       })
     }
 
+    await sendInstagramReply(senderId, aiReply)
     return NextResponse.json({ status: 'ok', reply: aiReply })
 
   } catch (error) {
