@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabase } from '@/lib/supabase'
 
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
+
 async function sendInstagramReply(recipientId: string, message: string) {
   const response = await fetch(
     `https://graph.instagram.com/v21.0/me/messages`,
@@ -21,10 +25,6 @@ async function sendInstagramReply(recipientId: string, message: string) {
   console.log('Instagram reply response:', JSON.stringify(data))
   return data
 }
-
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams
@@ -73,27 +73,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'client not found', entry_id: entry.id })
     }
 
-    const voiceProfile = clientData.voice_profile || 'You are a friendly business assistant.'
+    const voiceProfile = clientData.voice_profile || ''
 
     const response = await client.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 300,
-      system: `You are a social media assistant replying on behalf of a business owner on Instagram.
-Here is the personality and voice profile of the person you are replying as:
-${voiceProfile}
-Rules:
-- Keep replies short and conversational (1-3 sentences max)
-- Sound like a real human, not a bot
-- Never mention you are an AI
-- If asked about pricing, appointments, or anything you can't answer confidently, say: "Great question! I'll get the owner to reach out to you personally 😊"
-- Always end with a question or a friendly call to action`,
-      messages: [{ role: 'user', content: messageText }],
+      system: `You are replying to Instagram DMs on behalf of a real person. Your job is to sound EXACTLY like them — not like an AI, not like a customer service rep, just a real human texting back.
+
+${voiceProfile ? `Here is everything you need to know about this person and how they communicate:\n${voiceProfile}` : 'Be warm, friendly and conversational.'}
+
+RULES — follow these strictly:
+- Write like a real person texting. Short, natural, casual sentences.
+- Never use corporate language, buzzwords, or overly polished phrases.
+- No bullet points, no lists, no formal structure.
+- Match the energy of the message — if they're excited, be excited back. If they're casual, be casual.
+- Use the occasional lowercase, natural punctuation. Don't over-punctuate.
+- Keep it to 1-3 sentences MAX. People don't write essays over DM.
+- Always end with either a question to keep the convo going, or a clear next step.
+- If asked about pricing, specific availability, or anything sensitive: be warm and redirect — "haha good question — let me get [owner name] to reach out to you directly about that 😊 what's the best way to contact you?"
+- If someone seems angry or is complaining: acknowledge it genuinely, don't be defensive, offer to help.
+- NEVER mention you are an AI. Ever. Under any circumstances.
+- NEVER start a message with "Hey!" every single time — vary how you open.`,
+      messages: [
+        { role: 'user', content: messageText }
+      ],
     })
 
     const aiReply = response.content[0].type === 'text' ? response.content[0].text : ''
 
-    const leadKeywords = ['price', 'cost', 'how much', 'interested', 'buy', 'purchase', 'book', 'appointment', 'available', 'sign up']
+    // Detect leads — buying intent keywords
+    const leadKeywords = ['price', 'cost', 'how much', 'interested', 'buy', 'purchase', 'book', 'appointment', 'available', 'sign up', 'join', 'start', 'package', 'plan', 'invest', 'hire', 'work with', 'collab', 'partnership']
     const isLead = leadKeywords.some(keyword => messageText.toLowerCase().includes(keyword))
+
+    // Detect email in message
+    const emailMatch = messageText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
+    const detectedEmail = emailMatch ? emailMatch[0] : null
 
     const { data: savedMessage } = await supabase
       .from('messages')
@@ -105,17 +119,19 @@ Rules:
         content: messageText,
         ai_reply: aiReply,
         status: 'replied',
-        is_lead: isLead,
+        is_lead: isLead || !!detectedEmail,
       })
       .select()
       .single()
 
-    if (isLead && savedMessage) {
+    if ((isLead || detectedEmail) && savedMessage) {
       await supabase.from('leads').insert({
         client_id: clientData.id,
         message_id: savedMessage.id,
         from_username: senderId,
-        intent_summary: `User asked: "${messageText}"`,
+        intent_summary: detectedEmail
+          ? `User provided email: ${detectedEmail}. Message: "${messageText}"`
+          : `User asked: "${messageText}"`,
         status: 'new',
       })
     }

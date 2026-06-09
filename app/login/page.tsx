@@ -22,79 +22,78 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#f7f7f5' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif' }}>
 
       {/* Left panel */}
-      <div style={{ width: '50%', background: '#0f0f0f', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '4rem', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ width: '50%', background: '#111', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '4rem', position: 'relative', overflow: 'hidden' }}>
         <div>
-          <img src="/logo.png" alt="Walter & Co" style={{ width: '160px', filter: 'invert(1) brightness(2)', opacity: 0.95 }} />
+          <p style={{ fontSize: '1rem', fontWeight: '400', letterSpacing: '0.12em', color: '#fff' }}>WALTER & CO</p>
+          <p style={{ fontSize: '0.62rem', color: '#444', letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: '0.25rem' }}>AI Marketing</p>
         </div>
         <div>
-          <p style={{ color: '#333', fontSize: '0.65rem', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>What we do</p>
-          <h2 style={{ color: '#fff', fontSize: '2.5rem', fontWeight: '300', lineHeight: '1.3', letterSpacing: '0.02em', marginBottom: '2rem' }}>
+          <p style={{ color: '#333', fontSize: '0.62rem', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>What we do</p>
+          <h2 style={{ color: '#fff', fontSize: 'clamp(1.75rem, 3vw, 2.75rem)', fontWeight: '300', lineHeight: '1.25', letterSpacing: '0.01em', marginBottom: '2.5rem' }}>
             AI-powered Instagram replies that sound exactly like you.
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {[
-              'Replies to DMs automatically',
+              'Replies to every DM automatically',
               'Trained on your voice and personality',
               'Captures leads while you sleep',
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#444', flexShrink: 0 }} />
-                <p style={{ color: '#555', fontSize: '0.85rem', letterSpacing: '0.03em' }}>{item}</p>
+                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#333', flexShrink: 0 }} />
+                <p style={{ color: '#555', fontSize: '0.85rem', letterSpacing: '0.02em' }}>{item}</p>
               </div>
             ))}
           </div>
         </div>
-        <p style={{ color: '#222', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>© 2026 Walter & Co</p>
+        <p style={{ color: '#222', fontSize: '0.62rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>© 2026 Walter & Co</p>
       </div>
 
       {/* Right panel */}
-      <div style={{ width: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem' }}>
+      <div style={{ width: '50%', background: '#fafaf8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem' }}>
         <div style={{ width: '100%', maxWidth: '380px' }}>
-          <p style={{ color: '#aaa', fontSize: '0.65rem', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>Client Portal</p>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: '300', color: '#111', marginBottom: '0.5rem' }}>Welcome back.</h1>
-          <p style={{ color: '#999', fontSize: '0.85rem', marginBottom: '3rem' }}>Sign in to your dashboard.</p>
+          <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>Client Portal</p>
+          <h1 style={{ fontSize: '2.25rem', fontWeight: '300', color: '#111', marginBottom: '0.4rem' }}>Welcome back.</h1>
+          <p style={{ color: '#aaa', fontSize: '0.85rem', marginBottom: '3rem' }}>Sign in to your dashboard.</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
-              <p style={{ color: '#bbb', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Email</p>
+              <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Email</p>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                style={{ width: '100%', padding: '0.875rem 1rem', borderRadius: '8px', border: '1px solid #e8e8e8', fontSize: '0.875rem', color: '#111', background: '#fff', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '0.825rem 1rem', borderRadius: '8px', border: '1px solid #ebebeb', fontSize: '0.875rem', color: '#111', background: '#fff', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
               />
             </div>
             <div>
-              <p style={{ color: '#bbb', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Password</p>
+              <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Password</p>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
                 placeholder="••••••••"
-                style={{ width: '100%', padding: '0.875rem 1rem', borderRadius: '8px', border: '1px solid #e8e8e8', fontSize: '0.875rem', color: '#111', background: '#fff', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '0.825rem 1rem', borderRadius: '8px', border: '1px solid #ebebeb', fontSize: '0.875rem', color: '#111', background: '#fff', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
               />
             </div>
 
-            {error && (
-              <p style={{ color: '#cc4444', fontSize: '0.78rem', letterSpacing: '0.02em' }}>{error}</p>
-            )}
+            {error && <p style={{ color: '#cc4444', fontSize: '0.78rem' }}>{error}</p>}
 
             <button
               onClick={handleLogin}
               disabled={loading}
-              style={{ padding: '1rem', borderRadius: '8px', border: 'none', background: '#111', color: '#fff', cursor: 'pointer', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: '0.5rem', opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s' }}
+              style={{ padding: '0.925rem', borderRadius: '8px', border: '1px solid #111', background: '#111', color: '#fff', cursor: 'pointer', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: '0.5rem', opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s', fontFamily: 'inherit' }}
             >
               {loading ? 'Signing in...' : 'Sign In →'}
             </button>
           </div>
 
           <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #ebebeb' }}>
-            <p style={{ color: '#ccc', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Not a client yet? <a href="mailto:ethanvonl@icloud.com" style={{ color: '#888', textDecoration: 'underline' }}>Get in touch →</a></p>
+            <p style={{ color: '#ccc', fontSize: '0.75rem' }}>Not a client yet? <a href="mailto:ethanvonl@icloud.com" style={{ color: '#888', textDecoration: 'underline' }}>Get in touch →</a></p>
           </div>
         </div>
       </div>
