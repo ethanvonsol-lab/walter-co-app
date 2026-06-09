@@ -24,32 +24,54 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: client } = await supabase.from('clients').select('*').eq('email', user.email).single()
-      if (!client) return
-      setClientName(client.name || '')
-      const { data: msgs } = await supabase
-        .from('messages').select('*').eq('client_id', client.id).order('created_at', { ascending: false })
-      if (msgs) {
-        setMessages(msgs.slice(0, 5))
-        setStats({
-          total: msgs.length,
-          leads: msgs.filter(m => m.is_lead).length,
-          escalated: msgs.filter(m => m.status === 'escalated').length,
-        })
-        const days = Array(7).fill(0)
-        const now = new Date()
-        msgs.forEach(m => {
-          const daysAgo = Math.floor((now.getTime() - new Date(m.created_at).getTime()) / (1000 * 60 * 60 * 24))
-          if (daysAgo < 7) days[6 - daysAgo]++
-        })
-        setChartData(days)
-      }
+  const fetchData = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: client } = await supabase.from('clients').select('*').eq('email', user.email).single()
+    if (!client) return
+    setClientName(client.name || '')
+
+    const { data: msgs } = await supabase
+      .from('messages').select('*').eq('client_id', client.id).order('created_at', { ascending: false })
+    if (msgs) {
+      setMessages(msgs.slice(0, 5))
+      setStats({
+        total: msgs.length,
+        leads: msgs.filter(m => m.is_lead).length,
+        escalated: msgs.filter(m => m.status === 'escalated').length,
+      })
+      const days = Array(7).fill(0)
+      const now = new Date()
+      msgs.forEach(m => {
+        const daysAgo = Math.floor((now.getTime() - new Date(m.created_at).getTime()) / (1000 * 60 * 60 * 24))
+        if (daysAgo < 7) days[6 - daysAgo]++
+      })
+      setChartData(days)
     }
-    fetchData()
-  }, [])
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('dashboard-channel')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `client_id=eq.${client.id}`
+      }, (payload) => {
+        const newMsg = payload.new as Message
+        setMessages(prev => [newMsg, ...prev.slice(0, 4)])
+        setStats(prev => ({
+          ...prev,
+          total: prev.total + 1,
+          leads: newMsg.is_lead ? prev.leads + 1 : prev.leads,
+        }))
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }
+  fetchData()
+}, [])
 
   const getGreeting = () => {
     const h = new Date().getHours()
