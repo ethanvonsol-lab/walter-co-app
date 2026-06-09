@@ -114,35 +114,38 @@ Always end with a question to keep the conversation going.`
       {/* Hero */}
       <section ref={heroRef} style={{ padding: '7rem 4rem 5rem', maxWidth: '1300px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5rem', alignItems: 'center' }}>
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#f0f0f0', borderRadius: '20px', padding: '0.4rem 1rem', marginBottom: '2rem' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2a7a2a' }} />
-            <p style={{ fontSize: '0.7rem', color: '#666', letterSpacing: '0.1em' }}>AI is active and running</p>
-          </div>
-          <h1 style={{ fontSize: 'clamp(2.5rem, 4.5vw, 4.5rem)', fontWeight: '300', lineHeight: '1.1', letterSpacing: '-0.01em', marginBottom: '2rem' }}>
-            Your Instagram.<br />
-            Replied to<br />
-            <span style={{ fontStyle: 'italic', color: '#888' }}>automatically.</span>
-          </h1>
-          <p style={{ fontSize: '1.05rem', color: '#777', lineHeight: '1.75', maxWidth: '440px', marginBottom: '3rem', fontWeight: '300' }}>
-            We train an AI on your exact voice and personality. It replies to every DM 24/7 — capturing leads while you focus on what matters.
-          </p>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <a href="mailto:ethanvonl@icloud.com" style={{ padding: '1rem 2.5rem', borderRadius: '8px', background: '#111', color: '#fff', textDecoration: 'none', fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-              Get Started →
-            </a>
-            <a href="#demo" style={{ padding: '1rem 2rem', color: '#888', textDecoration: 'none', fontSize: '0.8rem', letterSpacing: '0.05em' }}>
-              Try the live demo ↓
-            </a>
-          </div>
-          <div style={{ display: 'flex', gap: '2.5rem', marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #f0f0f0' }}>
-            {[{ v: '< 3s', l: 'Reply time' }, { v: '24/7', l: 'Always on' }, { v: '100%', l: 'Your voice' }].map(s => (
-              <div key={s.l}>
-                <p style={{ fontSize: '1.5rem', fontWeight: '300', color: '#111' }}>{s.v}</p>
-                <p style={{ color: '#bbb', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>{s.l}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#f0f0f0', borderRadius: '20px', padding: '0.4rem 1rem', marginBottom: '2rem' }}>
+    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2a7a2a' }} />
+    <p style={{ fontSize: '0.7rem', color: '#666', letterSpacing: '0.1em' }}>AI is active and running</p>
+  </div>
+  <h1 style={{ fontSize: 'clamp(2.5rem, 4.5vw, 4.5rem)', fontWeight: '300', lineHeight: '1.1', letterSpacing: '-0.01em', marginBottom: '2rem' }}>
+    Stop replying<br />
+    to DMs.<br />
+    <span style={{ fontStyle: 'italic', color: '#888' }}>Let AI do it.</span>
+  </h1>
+  <p style={{ fontSize: '1.05rem', color: '#777', lineHeight: '1.75', maxWidth: '440px', marginBottom: '1.5rem', fontWeight: '300' }}>
+    Every unanswered DM is a lost lead. Every hour spent replying manually is an hour not spent growing your business.
+  </p>
+  <p style={{ fontSize: '1.05rem', color: '#777', lineHeight: '1.75', maxWidth: '440px', marginBottom: '3rem', fontWeight: '300' }}>
+    Walter & Co trains an AI on your exact voice — it handles every DM 24/7, captures leads automatically, and sounds exactly like you.
+  </p>
+  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+    <a href="mailto:ethanvonl@icloud.com" style={{ padding: '1rem 2.5rem', borderRadius: '8px', background: '#111', color: '#fff', textDecoration: 'none', fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+      Get Started →
+    </a>
+    <a href="#demo" style={{ padding: '1rem 2rem', color: '#888', textDecoration: 'none', fontSize: '0.8rem', letterSpacing: '0.05em' }}>
+      Try the live demo ↓
+    </a>
+  </div>
+  <div style={{ display: 'flex', gap: '2.5rem', marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #f0f0f0' }}>
+    {[{ v: '< 3s', l: 'Reply time' }, { v: '24/7', l: 'Always on' }, { v: '100%', l: 'Your voice' }].map(s => (
+      <div key={s.l}>
+        <p style={{ fontSize: '1.5rem', fontWeight: '300', color: '#111' }}>{s.v}</p>
+        <p style={{ color: '#bbb', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>{s.l}</p>
+      </div>
+    ))}
+  </div>
+</div>
 
         {/* DM Mockup */}
         <div style={{ position: 'relative' }}>
@@ -288,8 +291,8 @@ Always end with a question to keep the conversation going.`
       {/* How it works */}
       <section id="how-it-works" style={{ padding: '8rem 4rem', maxWidth: '1200px', margin: '0 auto' }}>
         <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1rem' }}>The Process</p>
-        <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '5rem', maxWidth: '500px', lineHeight: '1.2' }}>Set up once. Run forever.</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4rem' }}>
+<h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1.5rem', maxWidth: '500px', lineHeight: '1.2' }}>Set up once. Run forever.</h2>
+<p style={{ color: '#999', fontSize: '1rem', lineHeight: '1.7', maxWidth: '500px', marginBottom: '5rem' }}>Most businesses are still replying to DMs manually in 2026. That's hours of your week gone — and messages still falling through the cracks. There's a better way.</p>        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4rem' }}>
           {[
             { num: '01', title: 'We train your AI', desc: 'Answer 10 questions about your tone, personality, and business. We build an AI that replies exactly how you would.' },
             { num: '02', title: 'Connect Instagram', desc: 'Link your Instagram account in one click. The AI starts monitoring your DMs and comments immediately.' },
@@ -308,9 +311,9 @@ Always end with a question to keep the conversation going.`
       <section id="demo" style={{ padding: '8rem 4rem', background: '#0f0f0f' }}>
         <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
           <p style={{ color: '#444', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1rem' }}>Live Demo</p>
-          <h2 style={{ fontSize: '3rem', fontWeight: '300', color: '#fff', lineHeight: '1.2', marginBottom: '1rem' }}>Try it right now.</h2>
           <p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.7', marginBottom: '3rem' }}>Type any message below and see how the AI replies — just like a real Instagram DM.</p>
-
+          <h2 style={{ fontSize: '3rem', fontWeight: '300', color: '#fff', lineHeight: '1.2', marginBottom: '1rem' }}>Talk to our AI. Right now.</h2>
+<p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.7', marginBottom: '3rem' }}>Ask us anything — about the product, pricing, how it works. This is exactly what your clients' DMs will feel like.</p>
           <div style={{ background: '#1a1a1a', borderRadius: '16px', padding: '2rem', border: '1px solid #222', textAlign: 'left' }}>
             <p style={{ color: '#444', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Send a DM</p>
             <input
@@ -318,7 +321,7 @@ Always end with a question to keep the conversation going.`
               value={demoMessage}
               onChange={e => setDemoMessage(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleDemo()}
-              placeholder="e.g. How much do your services cost?"
+              placeholder="e.g. What does Walter & Co actually do?"
               style={{ width: '100%', padding: '1rem 1.25rem', borderRadius: '10px', border: '1px solid #2a2a2a', background: '#111', color: '#fff', fontSize: '0.9rem', boxSizing: 'border-box', marginBottom: '1rem', outline: 'none', fontFamily: 'inherit' }}
             />
             <button
