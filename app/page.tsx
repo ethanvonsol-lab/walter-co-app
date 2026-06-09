@@ -375,13 +375,13 @@ Always end with a question to keep the conversation going.`
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', maxWidth: '860px' }}>
             {[
               {
-                name: 'Standard', setup: 'NZD $350', monthly: '$500', period: '/month',
+                name: 'Standard', setup: 'USD $350', monthly: '$500', period: '/month',
                 desc: 'For individual businesses and creators',
                 features: ['1 Instagram account', 'AI reply automation', 'Lead capture & detection', 'Analytics dashboard', 'Voice profile training', 'Monthly reporting'],
                 cta: 'Get Started', highlight: false,
               },
               {
-                name: 'Agency', setup: 'From NZD $500', monthly: 'From $1,000', period: '/month',
+                name: 'Agency', setup: 'From USD $500', monthly: 'From $1,000', period: '/month',
                 desc: 'White-label for agencies with multiple clients',
                 features: ['Multiple client accounts', 'White-label dashboard', 'Your own branding & domain', 'Agency-wide analytics', 'Priority support', 'Custom onboarding'],
                 cta: 'Contact Us', highlight: true,
