@@ -20,13 +20,17 @@ export default function InboxPage() {
   const [selected, setSelected] = useState<Message | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [clientId, setClientId] = useState('')
+  const [newCount, setNewCount] = useState(0)
 
   useEffect(() => {
-    const fetchMessages = async () => {
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data: client } = await supabase.from('clients').select('id').eq('email', user.email).single()
       if (!client) return
+      setClientId(client.id)
+
       const { data } = await supabase
         .from('messages').select('*').eq('client_id', client.id).order('created_at', { ascending: false })
       if (data) {
@@ -34,8 +38,25 @@ export default function InboxPage() {
         if (data.length > 0) setSelected(data[0])
       }
       setLoading(false)
+
+      // Real-time subscription
+      const channel = supabase
+        .channel('messages-channel')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `client_id=eq.${client.id}`
+        }, (payload) => {
+          const newMsg = payload.new as Message
+          setMessages(prev => [newMsg, ...prev])
+          setNewCount(prev => prev + 1)
+        })
+        .subscribe()
+
+      return () => { supabase.removeChannel(channel) }
     }
-    fetchMessages()
+    init()
   }, [])
 
   const filtered = messages.filter(m => {
@@ -62,22 +83,24 @@ export default function InboxPage() {
         {/* Message List */}
         <div style={{ width: '340px', background: '#fff', borderRight: '1px solid #ebebeb', display: 'flex', flexDirection: 'column', height: '100vh' }}>
           <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid #f0f0f0' }}>
-            <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Inbox</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+              <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Inbox</p>
+              {newCount > 0 && (
+                <span style={{ background: '#111', color: '#fff', fontSize: '0.6rem', padding: '0.2rem 0.5rem', borderRadius: '10px', letterSpacing: '0.05em' }}>
+                  {newCount} new
+                </span>
+              )}
+            </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: '300', color: '#111', marginBottom: '1rem' }}>Messages</h1>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               {['all', 'leads', 'escalated'].map(f => (
-                <button key={f} onClick={() => setFilter(f)} style={{
-                  padding: '0.3rem 0.875rem',
-                  borderRadius: '20px',
-                  border: '1px solid',
+                <button key={f} onClick={() => { setFilter(f); setNewCount(0) }} style={{
+                  padding: '0.3rem 0.875rem', borderRadius: '20px', border: '1px solid',
                   borderColor: filter === f ? '#111' : '#e8e8e8',
                   background: filter === f ? '#111' : 'transparent',
                   color: filter === f ? '#fff' : '#aaa',
-                  fontSize: '0.65rem',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
+                  fontSize: '0.65rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+                  cursor: 'pointer', fontFamily: 'inherit',
                 }}>{f}</button>
               ))}
             </div>
@@ -96,8 +119,7 @@ export default function InboxPage() {
                 key={msg.id}
                 onClick={() => setSelected(msg)}
                 style={{
-                  padding: '1.1rem 1.5rem',
-                  borderBottom: '1px solid #f5f5f5',
+                  padding: '1.1rem 1.5rem', borderBottom: '1px solid #f5f5f5',
                   cursor: 'pointer',
                   background: selected?.id === msg.id ? '#fafaf8' : '#fff',
                   borderLeft: selected?.id === msg.id ? '2px solid #111' : '2px solid transparent',
