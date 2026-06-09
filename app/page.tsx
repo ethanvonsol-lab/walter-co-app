@@ -59,25 +59,33 @@ export default function HomePage() {
   }, [activeIndustry])
 
   const handleDemo = async () => {
-    if (!demoMessage.trim()) return
-    setDemoLoading(true)
-    setDemoReply('')
-    try {
-      const res = await fetch('/api/reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: demoMessage,
-          voiceProfile: 'You are a friendly, professional business owner. You are warm, engaging, and always end with a question to keep the conversation going. Keep replies to 1-2 sentences.'
-        })
+  if (!demoMessage.trim()) return
+  setDemoLoading(true)
+  setDemoReply('')
+  try {
+    const res = await fetch('/api/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: demoMessage,
+        voiceProfile: `Your name is Ethan and you run Walter & Co, an AI marketing agency based in New Zealand. You sell an AI-powered Instagram reply bot that handles DMs automatically for businesses.
+
+Your tone: confident, friendly, direct. You speak casually like a real person texting — not corporate, not salesy. You believe in what you sell because it genuinely works.
+
+When someone asks about the product: explain it simply and get them interested without overwhelming them.
+When someone asks about pricing: mention it starts at $500/month with a $350 setup fee, then ask what kind of business they run.
+When someone asks how it works: keep it simple — "we train an AI on your voice and it handles your DMs 24/7"
+Your goal: qualify them and get them on a call or to send an email to ethanvonl@icloud.com
+Always end with a question to keep the conversation going.`
       })
-      const data = await res.json()
-      setDemoReply(data.reply)
-    } catch {
-      setDemoReply('Something went wrong. Try again.')
-    }
-    setDemoLoading(false)
+    })
+    const data = await res.json()
+    setDemoReply(data.reply)
+  } catch {
+    setDemoReply('Something went wrong. Try again.')
   }
+  setDemoLoading(false)
+}
 
   const currentConvo = industries[activeIndustry]
 
