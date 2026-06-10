@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
@@ -10,6 +10,50 @@ export default function SettingsPage() {
   const [customDelay, setCustomDelay] = useState('')
   const [autoReply, setAutoReply] = useState(true)
   const [saved, setSaved] = useState(false)
+
+  // Profile (name + industry) — persisted to the clients table.
+  const [name, setName] = useState('')
+  const [industry, setIndustry] = useState('')
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
+  const [profileError, setProfileError] = useState('')
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setProfileLoaded(true); return }
+      const { data } = await supabase
+        .from('clients')
+        .select('name, industry')
+        .eq('email', user.email)
+        .maybeSingle()
+      if (data) {
+        setName(data.name || '')
+        setIndustry(data.industry || '')
+      }
+      setProfileLoaded(true)
+    }
+    load()
+  }, [])
+
+  const handleSaveProfile = async () => {
+    setProfileError('')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setProfileError('You need to be signed in.'); return }
+    setProfileSaving(true)
+    const { error } = await supabase
+      .from('clients')
+      .update({ name: name.trim(), industry: industry.trim() })
+      .eq('email', user.email)
+    setProfileSaving(false)
+    if (error) {
+      setProfileError(error.message)
+    } else {
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 2000)
+    }
+  }
 
   const handleSave = async () => {
     setSaved(true)
@@ -24,6 +68,15 @@ export default function SettingsPage() {
   const secondsOptions: [string, string][] = [['5', '5 sec'], ['10', '10 sec'], ['15', '15 sec'], ['30', '30 sec']]
   const minutesOptions: [string, string][] = [['1', '1 min'], ['3', '3 mins'], ['5', '5 mins'], ['10', '10 mins'], ['15', '15 mins']]
 
+  const fieldInput: React.CSSProperties = {
+    width: '100%', padding: '0.7rem 1rem', borderRadius: '8px', border: '1px solid #ebebeb',
+    fontSize: '0.85rem', color: '#111', background: '#fafaf8', boxSizing: 'border-box',
+    outline: 'none', fontFamily: 'inherit',
+  }
+  const fieldLabel: React.CSSProperties = {
+    color: '#bbb', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem',
+  }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#fafaf8' }}>
       <Sidebar active="Settings" />
@@ -37,6 +90,47 @@ export default function SettingsPage() {
         </div>
 
         <div style={{ maxWidth: '560px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+          {/* Profile */}
+          <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+            <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Profile</p>
+            <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Your name and industry — shown across your dashboard and sidebar</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              <div>
+                <p style={fieldLabel}>Name</p>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder={profileLoaded ? 'e.g. Walter & Co' : 'Loading…'}
+                  disabled={!profileLoaded}
+                  style={fieldInput}
+                />
+              </div>
+              <div>
+                <p style={fieldLabel}>Industry</p>
+                <input
+                  type="text"
+                  value={industry}
+                  onChange={e => setIndustry(e.target.value)}
+                  placeholder={profileLoaded ? 'e.g. Content, Fitness, Skincare' : 'Loading…'}
+                  disabled={!profileLoaded}
+                  style={fieldInput}
+                />
+              </div>
+
+              {profileError && <p style={{ color: '#cc4444', fontSize: '0.78rem' }}>{profileError}</p>}
+
+              <button
+                onClick={handleSaveProfile}
+                disabled={!profileLoaded || profileSaving}
+                style={{ alignSelf: 'flex-start', padding: '0.7rem 1.75rem', borderRadius: '10px', border: '1px solid #111', background: profileSaved ? '#2a7a2a' : '#111', color: '#fff', cursor: profileLoaded && !profileSaving ? 'pointer' : 'default', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', opacity: !profileLoaded || profileSaving ? 0.5 : 1, transition: 'background 0.3s', fontFamily: 'inherit' }}
+              >
+                {profileSaved ? 'Saved ✓' : profileSaving ? 'Saving…' : 'Save Profile'}
+              </button>
+            </div>
+          </div>
 
           {/* Auto Reply */}
           <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
