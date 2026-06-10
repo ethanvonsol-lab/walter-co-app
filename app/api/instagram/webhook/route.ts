@@ -6,14 +6,14 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-async function sendInstagramReply(recipientId: string, message: string) {
+async function sendInstagramReply(recipientId: string, message: string, accessToken: string) {
   const response = await fetch(
     `https://graph.instagram.com/v21.0/me/messages`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.INSTAGRAM_ACCESS_TOKEN}`
+        'Authorization': `Bearer ${accessToken}`
       },
       body: JSON.stringify({
         recipient: { id: recipientId },
@@ -84,6 +84,10 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
     const aiEnabled = convo?.ai_enabled !== false
 
+    // Use the client's own Instagram token if they've connected one; otherwise
+    // fall back to the shared token (the original single-account setup).
+    const accessToken = clientData.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || ''
+
     const voiceProfile = clientData.voice_profile || ''
 
     let aiReply = ''
@@ -151,7 +155,7 @@ RULES — follow these strictly:
     }
 
     if (aiEnabled) {
-      await sendInstagramReply(senderId, aiReply)
+      await sendInstagramReply(senderId, aiReply, accessToken)
     }
     return NextResponse.json({ status: aiEnabled ? 'ok' : 'manual', reply: aiReply })
 

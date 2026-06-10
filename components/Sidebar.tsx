@@ -43,6 +43,7 @@ export default function Sidebar({ active }: SidebarProps) {
     { label: 'Analytics', href: '/dashboard/analytics' },
     { label: 'Voice Profile', href: '/dashboard/voice' },
     { label: 'Settings', href: '/dashboard/settings' },
+    { label: 'Connections', href: '/dashboard/connections' },
     { label: 'Chat Widget', href: '/widget' },
   ]
 
