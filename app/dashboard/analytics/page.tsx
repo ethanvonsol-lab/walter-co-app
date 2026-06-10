@@ -4,19 +4,26 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
+const card: React.CSSProperties = { background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }
+const eyebrow: React.CSSProperties = { color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase' }
+
 export default function AnalyticsPage() {
   const [stats, setStats] = useState({ total: 0, leads: 0, escalated: 0, replied: 0 })
-  const [chartData, setChartData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0])
-  const [leadChart, setLeadChart] = useState<number[]>([0, 0, 0, 0, 0, 0, 0])
+  const [series, setSeries] = useState<number[]>(Array(30).fill(0))
+  const [leadSeries, setLeadSeries] = useState<number[]>(Array(30).fill(0))
   const [topKeywords, setTopKeywords] = useState<{ word: string, count: number }[]>([])
+  const [weekDelta, setWeekDelta] = useState(0)
   const [loading, setLoading] = useState(true)
+
+  const [insights, setInsights] = useState<string[]>([])
+  const [insightsLoading, setInsightsLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data: client } = await supabase.from('clients').select('id').eq('email', user.email).single()
-      if (!client) return
+      const { data: client } = await supabase.from('clients').select('id').eq('email', user.email).maybeSingle()
+      if (!client) { setLoading(false); setInsightsLoading(false); return }
 
       const { data: msgs } = await supabase
         .from('messages').select('*').eq('client_id', client.id).order('created_at', { ascending: false })
@@ -29,45 +36,63 @@ export default function AnalyticsPage() {
           replied: msgs.filter(m => m.status === 'replied').length,
         })
 
-        const days = Array(7).fill(0)
-        const leadDays = Array(7).fill(0)
+        const days = Array(30).fill(0)
+        const leadDays = Array(30).fill(0)
         const now = new Date()
         const wordMap: Record<string, number> = {}
+        let last7 = 0, prev7 = 0
 
         msgs.forEach(m => {
-          const daysAgo = Math.floor((now.getTime() - new Date(m.created_at).getTime()) / (1000 * 60 * 60 * 24))
-          if (daysAgo < 7) {
-            days[6 - daysAgo]++
-            if (m.is_lead) leadDays[6 - daysAgo]++
+          const daysAgo = Math.floor((now.getTime() - new Date(m.created_at).getTime()) / 86400000)
+          if (daysAgo < 30) {
+            days[29 - daysAgo]++
+            if (m.is_lead) leadDays[29 - daysAgo]++
           }
-          m.content?.toLowerCase().split(/\s+/).forEach((w: string) => {
+          if (daysAgo < 7) last7++
+          else if (daysAgo < 14) prev7++
+          ;(m.content || '').toLowerCase().split(/\s+/).forEach((w: string) => {
             const clean = w.replace(/[^a-z]/g, '')
             if (clean.length > 3) wordMap[clean] = (wordMap[clean] || 0) + 1
           })
         })
 
-        setChartData(days)
-        setLeadChart(leadDays)
+        setSeries(days)
+        setLeadSeries(leadDays)
+        setWeekDelta(prev7 > 0 ? Math.round(((last7 - prev7) / prev7) * 100) : (last7 > 0 ? 100 : 0))
         setTopKeywords(
           Object.entries(wordMap).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([word, count]) => ({ word, count }))
         )
       }
       setLoading(false)
+
+      // AI insights — Walter reads the numbers and tells you what to do.
+      fetch('/api/insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id }),
+      })
+        .then(r => r.json())
+        .then(data => setInsights(data.insights || []))
+        .catch(() => setInsights(["Walter couldn't generate insights right now."]))
+        .finally(() => setInsightsLoading(false))
     }
     fetchData()
   }, [])
 
-  const getDayLabel = (i: number) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
-    return d.toLocaleDateString('en', { weekday: 'short' })
-  }
-
-  const maxChart = Math.max(...chartData, 1)
-  const maxLead = Math.max(...leadChart, 1)
   const conversionRate = stats.total > 0 ? Math.round((stats.leads / stats.total) * 100) : 0
+  const maxSeries = Math.max(...series, 1)
 
-  const card = { background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }
+  // 30-day line + area path (viewBox 0 0 600 150).
+  const pts = series.map((v, i) => [(i / 29) * 600, 150 - (v / maxSeries) * 130])
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L600,150 L0,150 Z`
+  const maxLead = Math.max(...leadSeries, 1)
+
+  const dateLabel = (i: number) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (29 - i))
+    return d.toLocaleDateString('en', { month: 'short', day: 'numeric' })
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#fafaf8' }}>
@@ -75,10 +100,33 @@ export default function AnalyticsPage() {
 
       <main style={{ marginLeft: '260px', flex: 1, padding: '3.5rem 4rem', overflowY: 'auto' }}>
 
-        <div style={{ marginBottom: '3rem', paddingBottom: '2rem', borderBottom: '1px solid #f0f0f0' }}>
-          <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Reporting</p>
+        <div style={{ marginBottom: '2.5rem', paddingBottom: '2rem', borderBottom: '1px solid #f0f0f0' }}>
+          <p style={{ ...eyebrow, fontSize: '0.62rem', letterSpacing: '0.25em', marginBottom: '0.5rem' }}>Reporting</p>
           <h1 style={{ fontSize: '2.25rem', fontWeight: '300', color: '#111' }}>Analytics</h1>
           <p style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '0.5rem' }}>Performance overview for your Instagram automation.</p>
+        </div>
+
+        {/* AI Insights */}
+        <div style={{ ...card, padding: '1.75rem 2rem', marginBottom: '1.5rem' }}>
+          <p style={{ ...eyebrow, color: '#111', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.9rem' }}>✦</span> Walter&apos;s Read
+          </p>
+          {insightsLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+              {[88, 76, 82].map((w, i) => (
+                <div key={i} style={{ height: '13px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f3f3f1,#ececea,#f3f3f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {insights.map((line, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#111', marginTop: '0.55rem', flexShrink: 0 }} />
+                  <p style={{ color: '#333', fontSize: '1rem', lineHeight: '1.5', fontWeight: 300 }}>{line}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -86,7 +134,7 @@ export default function AnalyticsPage() {
         ) : (
           <>
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
               {[
                 { label: 'Total Messages', value: stats.total },
                 { label: 'Replies Sent', value: stats.replied },
@@ -94,47 +142,38 @@ export default function AnalyticsPage() {
                 { label: 'Conversion Rate', value: `${conversionRate}%` },
               ].map(stat => (
                 <div key={stat.label} style={card}>
-                  <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>{stat.label}</p>
+                  <p style={{ ...eyebrow, marginBottom: '1rem' }}>{stat.label}</p>
                   <p style={{ fontSize: '2.5rem', fontWeight: '300', color: '#111', lineHeight: 1 }}>{stat.value}</p>
                 </div>
               ))}
             </div>
 
-            {/* Charts */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
-              <div style={card}>
-                <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Reply Volume</p>
-                <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.75rem' }}>Messages replied to — last 7 days</p>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.6rem', height: '110px' }}>
-                  {chartData.map((val, i) => (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', height: '100%', justifyContent: 'flex-end' }}>
-                      <p style={{ color: '#ddd', fontSize: '0.6rem' }}>{val || ''}</p>
-                      <div style={{ width: '100%', background: val > 0 ? '#111' : '#f0f0ee', borderRadius: '3px 3px 0 0', height: `${Math.max((val / maxChart) * 100, val > 0 ? 8 : 3)}%` }} />
-                      <p style={{ color: '#ccc', fontSize: '0.6rem' }}>{getDayLabel(i)}</p>
-                    </div>
-                  ))}
+            {/* 30-day trend */}
+            <div style={{ ...card, marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem' }}>
+                <div>
+                  <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Message Volume</p>
+                  <p style={{ color: '#ccc', fontSize: '0.75rem' }}>Incoming DMs — last 30 days</p>
                 </div>
+                <p style={{ fontSize: '0.8rem', color: weekDelta >= 0 ? '#1d9e75' : '#cc4444' }}>
+                  {weekDelta >= 0 ? '↑' : '↓'} {Math.abs(weekDelta)}% vs prior week
+                </p>
               </div>
-
-              <div style={card}>
-                <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Lead Volume</p>
-                <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.75rem' }}>Leads captured — last 7 days</p>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.6rem', height: '110px' }}>
-                  {leadChart.map((val, i) => (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', height: '100%', justifyContent: 'flex-end' }}>
-                      <p style={{ color: '#ddd', fontSize: '0.6rem' }}>{val || ''}</p>
-                      <div style={{ width: '100%', background: val > 0 ? '#555' : '#f0f0ee', borderRadius: '3px 3px 0 0', height: `${Math.max((val / maxLead) * 100, val > 0 ? 8 : 3)}%` }} />
-                      <p style={{ color: '#ccc', fontSize: '0.6rem' }}>{getDayLabel(i)}</p>
-                    </div>
-                  ))}
-                </div>
+              <svg viewBox="0 0 600 150" preserveAspectRatio="none" style={{ width: '100%', height: '180px', display: 'block' }}>
+                <path d={areaPath} fill="#111" fillOpacity="0.04" />
+                <path d={linePath} fill="none" stroke="#111" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+              </svg>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                <span style={{ color: '#ccc', fontSize: '0.6rem' }}>{dateLabel(0)}</span>
+                <span style={{ color: '#ccc', fontSize: '0.6rem' }}>{dateLabel(15)}</span>
+                <span style={{ color: '#ccc', fontSize: '0.6rem' }}>{dateLabel(29)}</span>
               </div>
             </div>
 
             {/* Keywords + Funnel */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
               <div style={card}>
-                <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Top Keywords</p>
+                <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Top Keywords</p>
                 <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.5rem' }}>Most common words in incoming messages</p>
                 {topKeywords.length === 0 ? (
                   <p style={{ color: '#ccc', fontSize: '0.8rem' }}>No data yet</p>
@@ -150,7 +189,7 @@ export default function AnalyticsPage() {
               </div>
 
               <div style={card}>
-                <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Conversion Funnel</p>
+                <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Conversion Funnel</p>
                 <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.5rem' }}>From message to lead</p>
                 {[
                   { label: 'Messages Received', value: stats.total, pct: 100 },
@@ -170,6 +209,17 @@ export default function AnalyticsPage() {
                       <div style={{ background: '#111', borderRadius: '3px', height: '3px', width: `${row.pct}%`, transition: 'width 0.5s ease' }} />
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Lead volume sparkbars */}
+            <div style={{ ...card, marginBottom: '1.5rem' }}>
+              <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Lead Volume</p>
+              <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.5rem' }}>Leads captured — last 30 days</p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '70px' }}>
+                {leadSeries.map((val, i) => (
+                  <div key={i} style={{ flex: 1, background: val > 0 ? '#111' : '#f3f3f1', borderRadius: '2px 2px 0 0', height: `${Math.max((val / maxLead) * 100, val > 0 ? 10 : 4)}%`, transition: 'height 0.3s ease' }} title={`${dateLabel(i)}: ${val}`} />
                 ))}
               </div>
             </div>
