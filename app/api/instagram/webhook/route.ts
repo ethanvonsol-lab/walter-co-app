@@ -73,8 +73,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'client not found', entry_id: entry.id })
     }
 
+    // Per-conversation AI switch: if the owner paused the bot for this person,
+    // record the DM but don't auto-reply (they're taking the convo over).
+    // Defensive — a missing conversation_settings table/row defaults to enabled.
+    const { data: convo } = await supabase
+      .from('conversation_settings')
+      .select('ai_enabled')
+      .eq('client_id', clientData.id)
+      .eq('from_username', senderId)
+      .maybeSingle()
+    const aiEnabled = convo?.ai_enabled !== false
+
     const voiceProfile = clientData.voice_profile || ''
 
+    let aiReply = ''
+    if (aiEnabled) {
     const response = await client.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 300,
@@ -99,7 +112,8 @@ RULES — follow these strictly:
       ],
     })
 
-    const aiReply = response.content[0].type === 'text' ? response.content[0].text : ''
+    aiReply = response.content[0].type === 'text' ? response.content[0].text : ''
+    }
 
     // Detect leads — buying intent keywords
     const leadKeywords = ['price', 'cost', 'how much', 'interested', 'buy', 'purchase', 'book', 'appointment', 'available', 'sign up', 'join', 'start', 'package', 'plan', 'invest', 'hire', 'work with', 'collab', 'partnership']
@@ -118,7 +132,7 @@ RULES — follow these strictly:
         from_username: senderId,
         content: messageText,
         ai_reply: aiReply,
-        status: 'replied',
+        status: aiEnabled ? 'replied' : 'manual',
         is_lead: isLead || !!detectedEmail,
       })
       .select()
@@ -136,8 +150,10 @@ RULES — follow these strictly:
       })
     }
 
-    await sendInstagramReply(senderId, aiReply)
-    return NextResponse.json({ status: 'ok', reply: aiReply })
+    if (aiEnabled) {
+      await sendInstagramReply(senderId, aiReply)
+    }
+    return NextResponse.json({ status: aiEnabled ? 'ok' : 'manual', reply: aiReply })
 
   } catch (error) {
     console.error('Webhook error:', error)
