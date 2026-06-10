@@ -11,17 +11,27 @@ export default function Sidebar({ active }: SidebarProps) {
   const [clientName, setClientName] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [industry, setIndustry] = useState('')
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase.from('clients').select('name, industry').eq('email', user.email).single()
+      if (!user) {
+        setLoaded(true)
+        return
+      }
       setClientEmail(user.email || '')
+      // maybeSingle() returns null instead of erroring when there's no client row.
+      const { data } = await supabase
+        .from('clients')
+        .select('name, industry')
+        .eq('email', user.email)
+        .maybeSingle()
       if (data) {
         setClientName(data.name || '')
         setIndustry(data.industry || '')
       }
+      setLoaded(true)
     }
     fetchProfile()
   }, [])
@@ -35,6 +45,22 @@ export default function Sidebar({ active }: SidebarProps) {
     { label: 'Settings', href: '/dashboard/settings' },
     { label: 'Chat Widget', href: '/widget' },
   ]
+
+  // Prefer the name's initial, fall back to the email's, then a neutral dot.
+  const avatarInitial =
+    (clientName.trim()[0] || clientEmail.trim()[0] || '·').toUpperCase()
+  const displayName = clientName || 'Your Name'
+  const prettyIndustry = industry
+    ? industry.charAt(0).toUpperCase() + industry.slice(1)
+    : ''
+  const subtitle = prettyIndustry || clientEmail
+
+  const shimmer: React.CSSProperties = {
+    borderRadius: '5px',
+    background: 'linear-gradient(90deg,#f3f3f1,#ececea,#f3f3f1)',
+    backgroundSize: '200% 100%',
+    animation: 'waltershimmer 1.4s ease-in-out infinite',
+  }
 
   return (
     <aside style={{
@@ -84,16 +110,25 @@ export default function Sidebar({ active }: SidebarProps) {
             justifyContent: 'center', flexShrink: 0
           }}>
             <p style={{ color: '#fff', fontSize: '0.8rem', fontFamily: '"Cormorant Garamond", Georgia, serif' }}>
-              {clientName ? clientName.charAt(0).toUpperCase() : '?'}
+              {loaded ? avatarInitial : ''}
             </p>
           </div>
-          <div style={{ overflow: 'hidden' }}>
-            <p style={{ color: '#111', fontSize: '0.82rem', fontFamily: '"Cormorant Garamond", Georgia, serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {clientName || 'Your Name'}
-            </p>
-            <p style={{ color: '#bbb', fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em' }}>
-              {industry || clientEmail}
-            </p>
+          <div style={{ overflow: 'hidden', flex: 1 }}>
+            {loaded ? (
+              <>
+                <p style={{ color: '#111', fontSize: '0.82rem', fontFamily: '"Cormorant Garamond", Georgia, serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {displayName}
+                </p>
+                <p style={{ color: '#bbb', fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em' }}>
+                  {subtitle}
+                </p>
+              </>
+            ) : (
+              <>
+                <div style={{ ...shimmer, height: '11px', width: '70%', marginBottom: '0.4rem' }} />
+                <div style={{ ...shimmer, height: '9px', width: '50%' }} />
+              </>
+            )}
           </div>
         </div>
         <p style={{ color: '#ddd', fontSize: '0.58rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>© 2026 Walter & Co</p>
