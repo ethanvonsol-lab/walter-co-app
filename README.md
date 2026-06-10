@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Walter & Co
+
+An AI-powered Instagram reply automation service. Walter & Co learns a creator's voice through a short onboarding flow, then drafts and sends on-brand replies to incoming Instagram messages, surfacing leads along the way.
+
+Built with [Next.js](https://nextjs.org), [Supabase](https://supabase.com) (auth + database), and the [Anthropic API](https://docs.anthropic.com).
+
+## Features
+
+- **Voice onboarding** — a guided questionnaire builds a per-client voice profile used to generate replies.
+- **Dashboard** — inbox, leads, voice settings, and analytics in one place.
+- **Instagram webhook** — receives incoming messages and detects buying-intent leads.
+- **AI replies** — generates responses in the client's voice via the Anthropic API.
+- **Embeddable widget** — a lightweight widget endpoint for collecting messages.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies and run the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env.local` file in the project root with the following:
 
-## Learn More
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
-To learn more about Next.js, take a look at the following resources:
+# Anthropic
+ANTHROPIC_API_KEY=
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Instagram
+INSTAGRAM_ACCESS_TOKEN=
+WEBHOOK_VERIFY_TOKEN=
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Create a production build |
+| `npm run start` | Run the production build |
+| `npm run lint` | Lint the project with ESLint |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/` — Next.js App Router pages and API routes (`dashboard`, `onboarding`, `login`, `widget`, `privacy`, `api/*`).
+- `components/` — shared React components.
+- `lib/` — Supabase client and other utilities.
+- `middleware.ts` — auth/session middleware.
