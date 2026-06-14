@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
+import { c, font, radius, card, label as themeLabel, input as themeInput, btn, pageTitle, muted } from '@/lib/theme'
 
 export default function SettingsPage() {
   const [delayType, setDelayType] = useState('minutes')
@@ -11,9 +12,10 @@ export default function SettingsPage() {
   const [autoReply, setAutoReply] = useState(true)
   const [saved, setSaved] = useState(false)
 
-  // Profile (name + industry) — persisted to the clients table.
+  // Profile (name + industry + avg deal value) — persisted to the clients table.
   const [name, setName] = useState('')
   const [industry, setIndustry] = useState('')
+  const [avgDealValue, setAvgDealValue] = useState('')
   const [profileLoaded, setProfileLoaded] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileSaved, setProfileSaved] = useState(false)
@@ -25,12 +27,13 @@ export default function SettingsPage() {
       if (!user) { setProfileLoaded(true); return }
       const { data } = await supabase
         .from('clients')
-        .select('name, industry')
+        .select('name, industry, avg_deal_value')
         .eq('email', user.email)
         .maybeSingle()
       if (data) {
         setName(data.name || '')
         setIndustry(data.industry || '')
+        setAvgDealValue(data.avg_deal_value ? String(data.avg_deal_value) : '')
       }
       setProfileLoaded(true)
     }
@@ -44,7 +47,11 @@ export default function SettingsPage() {
     setProfileSaving(true)
     const { error } = await supabase
       .from('clients')
-      .update({ name: name.trim(), industry: industry.trim() })
+      .update({
+        name: name.trim(),
+        industry: industry.trim(),
+        avg_deal_value: avgDealValue.trim() ? Math.max(0, Math.round(Number(avgDealValue))) : 0,
+      })
       .eq('email', user.email)
     setProfileSaving(false)
     if (error) {
@@ -68,35 +75,34 @@ export default function SettingsPage() {
   const secondsOptions: [string, string][] = [['5', '5 sec'], ['10', '10 sec'], ['15', '15 sec'], ['30', '30 sec']]
   const minutesOptions: [string, string][] = [['1', '1 min'], ['3', '3 mins'], ['5', '5 mins'], ['10', '10 mins'], ['15', '15 mins']]
 
-  const fieldInput: React.CSSProperties = {
-    width: '100%', padding: '0.7rem 1rem', borderRadius: '8px', border: '1px solid #ebebeb',
-    fontSize: '0.85rem', color: '#111', background: '#fafaf8', boxSizing: 'border-box',
-    outline: 'none', fontFamily: 'inherit',
-  }
-  const fieldLabel: React.CSSProperties = {
-    color: '#bbb', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem',
-  }
+  const fieldLabel: React.CSSProperties = { ...themeLabel, fontSize: '0.72rem', marginBottom: '0.4rem' }
+
+  const chip = (active: boolean): React.CSSProperties => ({
+    padding: '0.45rem 1rem', borderRadius: radius.md, border: `1px solid ${active ? c.ink : c.border}`,
+    background: active ? c.ink : c.surface, color: active ? '#fff' : c.muted,
+    fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer', fontFamily: font, transition: 'all 0.12s',
+  })
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#fafaf8' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: font, background: c.bg }}>
       <Sidebar active="Settings" />
 
-      <main style={{ marginLeft: '260px', flex: 1, padding: '3.5rem 4rem' }}>
+      <main style={{ marginLeft: '244px', flex: 1, padding: '2.25rem 2.5rem' }}>
 
-        <div style={{ marginBottom: '3rem', paddingBottom: '2rem', borderBottom: '1px solid #f0f0f0' }}>
-          <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Account</p>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: '300', color: '#111' }}>Settings</h1>
-          <p style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '0.5rem' }}>Manage your bot preferences and account.</p>
+        <div style={{ marginBottom: '1.75rem' }}>
+          <p style={{ ...themeLabel, marginBottom: '0.4rem' }}>Account</p>
+          <h1 style={pageTitle}>Settings</h1>
+          <p style={{ ...muted, marginTop: '0.3rem' }}>Manage your bot preferences and account.</p>
         </div>
 
-        <div style={{ maxWidth: '560px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ maxWidth: '560px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
           {/* Profile */}
-          <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-            <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Profile</p>
-            <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Your name and industry — shown across your dashboard and sidebar</p>
+          <div style={card}>
+            <p style={themeLabel}>Profile</p>
+            <p style={{ ...muted, marginTop: '0.3rem', marginBottom: '1.25rem' }}>Your name and industry — shown across your dashboard and sidebar.</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <p style={fieldLabel}>Name</p>
                 <input
@@ -105,7 +111,7 @@ export default function SettingsPage() {
                   onChange={e => setName(e.target.value)}
                   placeholder={profileLoaded ? 'e.g. Walter & Co' : 'Loading…'}
                   disabled={!profileLoaded}
-                  style={fieldInput}
+                  style={themeInput}
                 />
               </div>
               <div>
@@ -116,73 +122,74 @@ export default function SettingsPage() {
                   onChange={e => setIndustry(e.target.value)}
                   placeholder={profileLoaded ? 'e.g. Content, Fitness, Skincare' : 'Loading…'}
                   disabled={!profileLoaded}
-                  style={fieldInput}
+                  style={themeInput}
                 />
               </div>
+              <div>
+                <p style={fieldLabel}>Average deal value ($)</p>
+                <input
+                  type="number"
+                  min={0}
+                  value={avgDealValue}
+                  onChange={e => setAvgDealValue(e.target.value)}
+                  placeholder={profileLoaded ? 'e.g. 1500' : 'Loading…'}
+                  disabled={!profileLoaded}
+                  style={themeInput}
+                />
+                <p style={{ color: c.faint, fontSize: '0.74rem', marginTop: '0.35rem' }}>What one new client is worth on average. Drives the pipeline value on your dashboard and leads.</p>
+              </div>
 
-              {profileError && <p style={{ color: '#cc4444', fontSize: '0.78rem' }}>{profileError}</p>}
+              {profileError && <p style={{ color: c.bad, fontSize: '0.82rem' }}>{profileError}</p>}
 
               <button
                 onClick={handleSaveProfile}
                 disabled={!profileLoaded || profileSaving}
-                style={{ alignSelf: 'flex-start', padding: '0.7rem 1.75rem', borderRadius: '10px', border: '1px solid #111', background: profileSaved ? '#2a7a2a' : '#111', color: '#fff', cursor: profileLoaded && !profileSaving ? 'pointer' : 'default', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', opacity: !profileLoaded || profileSaving ? 0.5 : 1, transition: 'background 0.3s', fontFamily: 'inherit' }}
+                style={{ ...btn, alignSelf: 'flex-start', background: profileSaved ? c.good : c.ink, borderColor: profileSaved ? c.good : c.ink, opacity: !profileLoaded || profileSaving ? 0.5 : 1 }}
               >
-                {profileSaved ? 'Saved ✓' : profileSaving ? 'Saving…' : 'Save Profile'}
+                {profileSaved ? 'Saved ✓' : profileSaving ? 'Saving…' : 'Save profile'}
               </button>
             </div>
           </div>
 
           {/* Auto Reply */}
-          <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+          <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Auto Reply</p>
-                <p style={{ color: '#888', fontSize: '0.85rem' }}>Automatically reply to incoming DMs</p>
+                <p style={themeLabel}>Auto Reply</p>
+                <p style={{ ...muted, marginTop: '0.3rem' }}>Automatically reply to incoming DMs.</p>
               </div>
               <button
                 onClick={() => setAutoReply(!autoReply)}
-                style={{ width: '48px', height: '26px', borderRadius: '13px', border: 'none', background: autoReply ? '#111' : '#e0e0e0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}
+                style={{ width: '44px', height: '24px', borderRadius: '13px', border: 'none', background: autoReply ? c.ink : '#d4d4d8', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
               >
-                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '4px', left: autoReply ? '26px' : '4px', transition: 'left 0.2s' }} />
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: autoReply ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
               </button>
             </div>
           </div>
 
           {/* Reply Delay */}
-          <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-            <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Reply Delay</p>
-            <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '1.25rem' }}>How long before the AI replies — feels more human</p>
+          <div style={card}>
+            <p style={themeLabel}>Reply Delay</p>
+            <p style={{ ...muted, marginTop: '0.3rem', marginBottom: '1.1rem' }}>How long before the AI replies — feels more human.</p>
 
-            {/* Type toggle */}
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
               {['seconds', 'minutes', 'custom'].map(type => (
-                <button
-                  key={type}
-                  onClick={() => setDelayType(type)}
-                  style={{
-                    padding: '0.4rem 1rem', borderRadius: '6px', border: '1px solid',
-                    borderColor: delayType === type ? '#111' : '#e8e8e8',
-                    background: delayType === type ? '#111' : '#fff',
-                    color: delayType === type ? '#fff' : '#888',
-                    fontSize: '0.7rem', cursor: 'pointer', fontFamily: 'inherit',
-                    letterSpacing: '0.05em', textTransform: 'capitalize'
-                  }}
-                >{type}</button>
+                <button key={type} onClick={() => setDelayType(type)} style={{ ...chip(delayType === type), textTransform: 'capitalize' }}>{type}</button>
               ))}
             </div>
 
             {delayType === 'seconds' && (
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {secondsOptions.map(([val, label]) => (
-                  <button key={val} onClick={() => setReplyDelay(val)} style={{ padding: '0.45rem 1.1rem', borderRadius: '6px', border: '1px solid', borderColor: replyDelay === val ? '#111' : '#e8e8e8', background: replyDelay === val ? '#111' : '#fff', color: replyDelay === val ? '#fff' : '#888', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
+                {secondsOptions.map(([val, lbl]) => (
+                  <button key={val} onClick={() => setReplyDelay(val)} style={chip(replyDelay === val)}>{lbl}</button>
                 ))}
               </div>
             )}
 
             {delayType === 'minutes' && (
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {minutesOptions.map(([val, label]) => (
-                  <button key={val} onClick={() => setReplyDelay(val)} style={{ padding: '0.45rem 1.1rem', borderRadius: '6px', border: '1px solid', borderColor: replyDelay === val ? '#111' : '#e8e8e8', background: replyDelay === val ? '#111' : '#fff', color: replyDelay === val ? '#fff' : '#888', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
+                {minutesOptions.map(([val, lbl]) => (
+                  <button key={val} onClick={() => setReplyDelay(val)} style={chip(replyDelay === val)}>{lbl}</button>
                 ))}
               </div>
             )}
@@ -194,9 +201,9 @@ export default function SettingsPage() {
                   value={customDelay}
                   onChange={e => setCustomDelay(e.target.value)}
                   placeholder="Enter value"
-                  style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #ebebeb', fontSize: '0.85rem', width: '120px', outline: 'none', fontFamily: 'inherit', background: '#fafaf8' }}
+                  style={{ ...themeInput, width: '120px' }}
                 />
-                <span style={{ color: '#888', fontSize: '0.85rem' }}>seconds</span>
+                <span style={{ ...muted }}>seconds</span>
               </div>
             )}
           </div>
@@ -204,15 +211,15 @@ export default function SettingsPage() {
           {/* Save */}
           <button
             onClick={handleSave}
-            style={{ padding: '0.925rem', borderRadius: '10px', border: '1px solid #111', background: saved ? '#2a7a2a' : '#111', color: '#fff', cursor: 'pointer', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', transition: 'background 0.3s', fontFamily: 'inherit' }}
+            style={{ ...btn, padding: '0.7rem', background: saved ? c.good : c.ink, borderColor: saved ? c.good : c.ink }}
           >
-            {saved ? 'Saved ✓' : 'Save Settings'}
+            {saved ? 'Saved ✓' : 'Save settings'}
           </button>
 
           {/* Account */}
-          <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-            <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Account</p>
-            <button onClick={handleLogout} style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', border: '1px solid #e8e8e8', background: '#fff', color: '#999', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}>
+          <div style={card}>
+            <p style={{ ...themeLabel, marginBottom: '1rem' }}>Account</p>
+            <button onClick={handleLogout} style={{ padding: '0.5rem 1.1rem', borderRadius: radius.md, border: `1px solid ${c.border}`, background: c.surface, color: c.muted, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 500, fontFamily: font }}>
               Sign out →
             </button>
           </div>

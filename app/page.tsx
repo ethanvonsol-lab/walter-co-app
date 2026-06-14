@@ -51,9 +51,10 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
-    setVisibleMessages(1)
-    const timers = [1200, 2400, 3600].map((delay, i) =>
-      setTimeout(() => setVisibleMessages(i + 2), delay)
+    // Reveal messages one by one. The reset to 1 is scheduled (not a synchronous
+    // setState in the effect body) so it reveals just after paint on each switch.
+    const timers = [0, 1200, 2400, 3600].map((delay, i) =>
+      setTimeout(() => setVisibleMessages(i === 0 ? 1 : i + 1), delay)
     )
     return () => timers.forEach(clearTimeout)
   }, [activeIndustry])
@@ -90,7 +91,7 @@ Always end with a question to keep the conversation going.`
   const currentConvo = industries[activeIndustry]
 
   return (
-    <div style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#fff', color: '#111', overflowX: 'hidden' }}>
+    <div style={{ background: '#fff', color: '#111', overflowX: 'hidden' }}>
 
       {/* Nav */}
       <nav style={{
@@ -218,7 +219,7 @@ Always end with a question to keep the conversation going.`
       {/* Dashboard Preview */}
       <section style={{ padding: '6rem 4rem', background: '#f7f7f5' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1rem' }}>The Dashboard</p>
+          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>The Dashboard</p>
           <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Everything in one place.</h2>
           <p style={{ color: '#888', fontSize: '1rem', marginBottom: '4rem', maxWidth: '500px', lineHeight: '1.7' }}>Your clients get a beautiful, real-time dashboard showing every message, lead, and reply.</p>
 
@@ -290,9 +291,9 @@ Always end with a question to keep the conversation going.`
 
       {/* How it works */}
       <section id="how-it-works" style={{ padding: '8rem 4rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1rem' }}>The Process</p>
+        <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>The Process</p>
 <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1.5rem', maxWidth: '500px', lineHeight: '1.2' }}>Set up once. Run forever.</h2>
-<p style={{ color: '#999', fontSize: '1rem', lineHeight: '1.7', maxWidth: '500px', marginBottom: '5rem' }}>Most businesses are still replying to DMs manually in 2026. That's hours of your week gone — and messages still falling through the cracks. There's a better way.</p>        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4rem' }}>
+<p style={{ color: '#999', fontSize: '1rem', lineHeight: '1.7', maxWidth: '500px', marginBottom: '5rem' }}>Most businesses are still replying to DMs manually in 2026. That&apos;s hours of your week gone — and messages still falling through the cracks. There&apos;s a better way.</p>        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4rem' }}>
           {[
             { num: '01', title: 'We train your AI', desc: 'Answer 10 questions about your tone, personality, and business. We build an AI that replies exactly how you would.' },
             { num: '02', title: 'Connect Instagram', desc: 'Link your Instagram account in one click. The AI starts monitoring your DMs and comments immediately.' },
@@ -310,10 +311,10 @@ Always end with a question to keep the conversation going.`
       {/* Live Demo */}
       <section id="demo" style={{ padding: '8rem 4rem', background: '#0f0f0f' }}>
         <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ color: '#444', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1rem' }}>Live Demo</p>
+          <p style={{ color: '#444', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Live Demo</p>
           <p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.7', marginBottom: '3rem' }}>Type any message below and see how the AI replies — just like a real Instagram DM.</p>
           <h2 style={{ fontSize: '3rem', fontWeight: '300', color: '#fff', lineHeight: '1.2', marginBottom: '1rem' }}>Talk to our AI. Right now.</h2>
-<p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.7', marginBottom: '3rem' }}>Ask us anything — about the product, pricing, how it works. This is exactly what your clients' DMs will feel like.</p>
+<p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.7', marginBottom: '3rem' }}>Ask us anything — about the product, pricing, how it works. This is exactly what your clients&apos; DMs will feel like.</p>
           <div style={{ background: '#1a1a1a', borderRadius: '16px', padding: '2rem', border: '1px solid #222', textAlign: 'left' }}>
             <p style={{ color: '#444', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Send a DM</p>
             <input
@@ -345,7 +346,7 @@ Always end with a question to keep the conversation going.`
       {/* Features */}
       <section style={{ padding: '8rem 4rem' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1rem' }}>Features</p>
+          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Features</p>
           <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '4rem' }}>Everything you need.</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
             {[
@@ -369,7 +370,7 @@ Always end with a question to keep the conversation going.`
       {/* Pricing */}
       <section id="pricing" style={{ padding: '8rem 4rem', background: '#f7f7f5' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1rem' }}>Pricing</p>
+          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Pricing</p>
           <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Simple, transparent pricing.</h2>
           <p style={{ color: '#999', fontSize: '1rem', marginBottom: '4rem' }}>No hidden fees. No long contracts. Cancel anytime.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', maxWidth: '860px' }}>
@@ -416,7 +417,7 @@ Always end with a question to keep the conversation going.`
       <section id="agencies" style={{ padding: '8rem 4rem', background: '#0f0f0f' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6rem', alignItems: 'center' }}>
           <div>
-            <p style={{ color: '#333', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>For Agencies</p>
+            <p style={{ color: '#333', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>For Agencies</p>
             <h2 style={{ fontSize: '3rem', fontWeight: '300', color: '#fff', lineHeight: '1.2', marginBottom: '1.5rem' }}>Add AI to your service offering.</h2>
             <p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.75', marginBottom: '2.5rem' }}>
               White-label our platform under your brand. Your clients see your logo, your domain — powered by our AI behind the scenes. You keep the margin.
@@ -430,7 +431,7 @@ Always end with a question to keep the conversation going.`
               { title: 'Your brand, our technology', desc: 'Full white-label — your logo, domain, and colours on everything your clients see.' },
               { title: 'Scalable seat pricing', desc: 'Pay per client slot. Start with 10, grow to unlimited. No upfront commitment.' },
               { title: 'You keep the margin', desc: 'Charge your clients whatever you want. We charge you a flat platform fee.' },
-              { title: 'Onboarded in 48 hours', desc: "We handle setup. You focus on signing clients. We'll have everything live fast." },
+              { title: 'Onboarded in 48 hours', desc: "We handle setup. You focus on signing clients. We&apos;ll have everything live fast." },
             ].map(item => (
               <div key={item.title} style={{ padding: '1.5rem', border: '1px solid #1a1a1a', borderRadius: '12px', transition: 'border-color 0.2s' }}>
                 <h3 style={{ color: '#fff', fontSize: '0.95rem', fontWeight: '400', marginBottom: '0.5rem' }}>{item.title}</h3>
@@ -444,12 +445,12 @@ Always end with a question to keep the conversation going.`
       {/* Final CTA */}
       <section style={{ padding: '10rem 4rem', textAlign: 'center' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>Get Started Today</p>
+          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>Get Started Today</p>
           <h2 style={{ fontSize: '4rem', fontWeight: '300', lineHeight: '1.1', marginBottom: '1.5rem', letterSpacing: '-0.01em' }}>
             Ready to automate your Instagram?
           </h2>
           <p style={{ color: '#888', fontSize: '1rem', lineHeight: '1.75', marginBottom: '3rem' }}>
-            We'll have your AI live and replying within 48 hours of signing up.
+            We&apos;ll have your AI live and replying within 48 hours of signing up.
           </p>
           <a href="mailto:ethanvonl@icloud.com" style={{ display: 'inline-block', padding: '1.25rem 3.5rem', borderRadius: '8px', background: '#111', color: '#fff', textDecoration: 'none', fontSize: '0.75rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Contact Us →

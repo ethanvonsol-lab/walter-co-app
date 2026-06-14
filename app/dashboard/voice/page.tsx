@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
+import { c, font, radius, card, label, input as themeInput, btn, pageTitle, muted, fontMono } from '@/lib/theme'
 
 const EXAMPLES = [
   'How much do your sessions cost?',
@@ -67,57 +68,50 @@ export default function VoicePage() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#fafaf8' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: font, background: c.bg }}>
       <Sidebar active="Voice Profile" />
 
-      <main style={{ marginLeft: '260px', flex: 1, padding: '3.5rem 4rem' }}>
+      <main style={{ marginLeft: '244px', flex: 1, padding: '2.25rem 2.5rem' }}>
 
-        <div style={{ marginBottom: '2.5rem', paddingBottom: '2rem', borderBottom: '1px solid #f0f0f0' }}>
-          <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Personalisation</p>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: '300', color: '#111' }}>Voice Profile</h1>
-          <p style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '0.5rem' }}>This is how your AI sounds. Edit it, then test it live below — changes apply instantly, no save needed to preview.</p>
+        <div style={{ marginBottom: '1.75rem' }}>
+          <p style={{ ...label, marginBottom: '0.4rem' }}>Personalisation</p>
+          <h1 style={pageTitle}>Voice Profile</h1>
+          <p style={{ ...muted, marginTop: '0.3rem' }}>This is how your AI sounds. Edit it, then test it live — changes apply instantly to the preview, no save needed.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1rem', alignItems: 'start' }}>
 
           {/* Editor */}
-          <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-            <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #f5f5f3' }}>
-              <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>AI Personality</p>
-              <p style={{ color: '#aaa', fontSize: '0.8rem' }}>This is sent to the AI before every reply. The more specific, the better.</p>
+          <div style={card}>
+            <div style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: `1px solid ${c.border}` }}>
+              <p style={label}>AI Personality</p>
+              <p style={{ ...muted, marginTop: '0.3rem' }}>This is sent to the AI before every reply. The more specific, the better.</p>
             </div>
 
             {loading ? (
-              <p style={{ color: '#ccc', fontSize: '0.85rem' }}>Loading...</p>
+              <p style={{ color: c.faint, fontSize: '0.875rem' }}>Loading…</p>
             ) : (
               <>
                 <textarea
                   value={voiceProfile}
                   onChange={e => setVoiceProfile(e.target.value)}
                   rows={18}
-                  placeholder="Complete the onboarding questionnaire to generate your voice profile, or write one here..."
+                  placeholder="Complete the onboarding questionnaire to generate your voice profile, or write one here…"
                   style={{
-                    width: '100%', padding: '1rem', borderRadius: '8px',
-                    border: '1px solid #ebebeb', background: '#fafaf8',
-                    color: '#333', fontSize: '0.85rem', lineHeight: '1.7',
-                    resize: 'vertical', boxSizing: 'border-box', outline: 'none',
-                    fontFamily: 'Georgia, serif', marginBottom: '1.5rem'
+                    ...themeInput, padding: '0.9rem', background: c.surfaceAlt,
+                    color: c.body, lineHeight: 1.7, resize: 'vertical',
+                    fontFamily: fontMono, fontSize: '0.82rem', marginBottom: '1.25rem',
                   }}
                 />
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    style={{
-                      padding: '0.825rem 2.5rem', borderRadius: '8px', border: '1px solid #111',
-                      background: saved ? '#2a7a2a' : '#111', color: '#fff', cursor: 'pointer',
-                      fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase',
-                      transition: 'background 0.3s', fontFamily: 'inherit'
-                    }}
+                    style={{ ...btn, padding: '0.6rem 2rem', background: saved ? c.good : c.ink, borderColor: saved ? c.good : c.ink }}
                   >
-                    {saved ? 'Saved ✓' : saving ? 'Saving...' : 'Save Profile'}
+                    {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save profile'}
                   </button>
-                  <a href="/onboarding" style={{ color: '#bbb', fontSize: '0.75rem', textDecoration: 'underline', letterSpacing: '0.05em' }}>
+                  <a href="/onboarding" style={{ color: c.muted, fontSize: '0.8rem', textDecoration: 'none', borderBottom: `1px solid ${c.border}`, paddingBottom: 1 }}>
                     Redo onboarding →
                   </a>
                 </div>
@@ -126,12 +120,12 @@ export default function VoicePage() {
           </div>
 
           {/* Live test */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-              <p style={{ color: '#111', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={card}>
+              <p style={{ ...label, color: c.ink, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <span style={{ fontSize: '0.85rem' }}>✦</span> Test Your Voice
               </p>
-              <p style={{ color: '#aaa', fontSize: '0.78rem', marginBottom: '1.25rem' }}>Type a DM a follower might send and hear how your AI replies — using the profile as edited right now.</p>
+              <p style={{ ...muted, marginTop: '0.3rem', marginBottom: '1.1rem' }}>Type a DM a follower might send and hear how your AI replies — using the profile as edited right now.</p>
 
               <input
                 type="text"
@@ -139,12 +133,12 @@ export default function VoicePage() {
                 onChange={e => setTestMsg(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && runTest()}
                 placeholder="e.g. How much do your sessions cost?"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #ebebeb', fontSize: '0.82rem', color: '#111', background: '#fafaf8', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', marginBottom: '0.75rem' }}
+                style={{ ...themeInput, marginBottom: '0.75rem' }}
               />
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
                 {EXAMPLES.map((ex, i) => (
-                  <button key={i} onClick={() => runTest(ex)} style={{ padding: '0.3rem 0.7rem', borderRadius: '20px', border: '1px solid #eee', background: '#fff', color: '#999', fontSize: '0.66rem', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}>
+                  <button key={i} onClick={() => runTest(ex)} style={{ padding: '0.3rem 0.7rem', borderRadius: radius.pill, border: `1px solid ${c.border}`, background: c.surface, color: c.muted, fontSize: '0.68rem', cursor: 'pointer', fontFamily: font }}>
                     {ex.length > 26 ? ex.slice(0, 26) + '…' : ex}
                   </button>
                 ))}
@@ -153,16 +147,16 @@ export default function VoicePage() {
               <button
                 onClick={() => runTest()}
                 disabled={testing || !testMsg}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #111', background: '#111', color: '#fff', cursor: testing || !testMsg ? 'default' : 'pointer', fontSize: '0.68rem', letterSpacing: '0.15em', textTransform: 'uppercase', opacity: testing || !testMsg ? 0.4 : 1, fontFamily: 'inherit' }}
+                style={{ ...btn, width: '100%', padding: '0.65rem', opacity: testing || !testMsg ? 0.4 : 1 }}
               >
                 {testing ? 'Generating…' : 'Hear my AI reply →'}
               </button>
 
               {(testing || testReply) && (
-                <div style={{ marginTop: '1.25rem' }}>
+                <div style={{ marginTop: '1.1rem' }}>
                   {testMsg && (
-                    <div style={{ background: '#f0f0ee', borderRadius: '12px 12px 12px 4px', padding: '0.7rem 0.95rem', maxWidth: '85%', marginBottom: '0.6rem' }}>
-                      <p style={{ color: '#666', fontSize: '0.8rem', lineHeight: '1.5' }}>{testMsg}</p>
+                    <div style={{ background: c.surfaceAlt, borderRadius: '12px 12px 12px 4px', padding: '0.65rem 0.9rem', maxWidth: '85%', marginBottom: '0.6rem' }}>
+                      <p style={{ color: c.body, fontSize: '0.82rem', lineHeight: 1.5 }}>{testMsg}</p>
                     </div>
                   )}
                   {testing ? (
@@ -172,17 +166,17 @@ export default function VoicePage() {
                       ))}
                     </div>
                   ) : (
-                    <div style={{ background: '#111', borderRadius: '12px 12px 4px 12px', padding: '0.8rem 1rem', maxWidth: '85%', marginLeft: 'auto' }}>
-                      <p style={{ color: '#fff', fontSize: '0.82rem', lineHeight: '1.55' }}>{testReply}</p>
-                      <p style={{ color: '#555', fontSize: '0.58rem', marginTop: '0.4rem', letterSpacing: '0.05em' }}>Your AI · in your voice</p>
+                    <div style={{ background: c.ink, borderRadius: '12px 12px 4px 12px', padding: '0.75rem 0.95rem', maxWidth: '85%', marginLeft: 'auto' }}>
+                      <p style={{ color: '#fff', fontSize: '0.82rem', lineHeight: 1.55 }}>{testReply}</p>
+                      <p style={{ color: '#a1a1aa', fontSize: '0.62rem', marginTop: '0.4rem' }}>Your AI · in your voice</p>
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.5rem 1.75rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-              <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Tips</p>
+            <div style={card}>
+              <p style={{ ...label, marginBottom: '0.9rem' }}>Tips</p>
               {[
                 'Include your name and what you do',
                 'Describe your tone — casual, warm, professional',
@@ -190,9 +184,9 @@ export default function VoicePage() {
                 'Include your main call to action',
                 'Mention how you handle pricing questions',
               ].map((tip, i) => (
-                <div key={i} style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.7rem', alignItems: 'flex-start' }}>
-                  <span style={{ color: '#ccc', fontSize: '0.7rem', marginTop: '0.1rem' }}>—</span>
-                  <p style={{ color: '#888', fontSize: '0.78rem', lineHeight: '1.5' }}>{tip}</p>
+                <div key={i} style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.6rem', alignItems: 'flex-start' }}>
+                  <span style={{ color: c.faint, fontSize: '0.75rem', marginTop: '0.1rem' }}>—</span>
+                  <p style={{ color: c.muted, fontSize: '0.8rem', lineHeight: 1.5 }}>{tip}</p>
                 </div>
               ))}
             </div>

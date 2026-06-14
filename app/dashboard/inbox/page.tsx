@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
+import { c, font, radius, card, label, pageTitle, tabular } from '@/lib/theme'
 
 interface Message {
   id: string
@@ -41,9 +42,9 @@ function scoreMessage(content: string): number {
 }
 
 const intentTone = (score: number) =>
-  score >= 70 ? { label: 'Hot', bg: '#111', color: '#fff' }
-  : score >= 40 ? { label: 'Warm', bg: '#f0f0ee', color: '#555' }
-  : { label: 'Low', bg: '#f7f7f5', color: '#bbb' }
+  score >= 70 ? { label: 'Hot', bg: c.ink, color: '#fff' }
+  : score >= 40 ? { label: 'Warm', bg: c.surfaceAlt, color: c.body }
+  : { label: 'Low', bg: c.surfaceAlt, color: c.faint }
 
 // Small on/off switch (matches the Settings toggle).
 function AiSwitch({ on, onClick, size = 'sm' }: { on: boolean; onClick: (e: React.MouseEvent) => void; size?: 'sm' | 'md' }) {
@@ -53,9 +54,9 @@ function AiSwitch({ on, onClick, size = 'sm' }: { on: boolean; onClick: (e: Reac
     <button
       onClick={onClick}
       aria-label={on ? 'AI on' : 'AI off'}
-      style={{ width: `${w}px`, height: `${knob + 8}px`, borderRadius: '999px', border: 'none', background: on ? '#1d9e75' : '#dcdcd8', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+      style={{ width: `${w}px`, height: `${knob + 8}px`, borderRadius: '999px', border: 'none', background: on ? '#22c55e' : '#d4d4d8', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
     >
-      <div style={{ width: `${knob}px`, height: `${knob}px`, borderRadius: '50%', background: '#fff', position: 'absolute', top: '4px', left: on ? `${w - knob - 4}px` : '4px', transition: 'left 0.2s' }} />
+      <div style={{ width: `${knob}px`, height: `${knob}px`, borderRadius: '50%', background: '#fff', position: 'absolute', top: '4px', left: on ? `${w - knob - 4}px` : '4px', transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
     </button>
   )
 }
@@ -170,6 +171,7 @@ export default function InboxPage() {
   const copyDraft = () => { navigator.clipboard?.writeText(draft); setCopied(true); setTimeout(() => setCopied(false), 1500) }
 
   const timeAgo = (date: string) => {
+    // eslint-disable-next-line react-hooks/purity -- relative timestamp, fine to recompute on render
     const diff = Date.now() - new Date(date).getTime()
     const mins = Math.floor(diff / 60000)
     if (mins < 60) return `${mins}m ago`
@@ -180,66 +182,67 @@ export default function InboxPage() {
 
   const pausedCount = conversations.filter(c => !c.aiEnabled).length
 
+  const filterChip = (active: boolean): React.CSSProperties => ({
+    padding: '0.3rem 0.85rem', borderRadius: radius.pill, border: `1px solid ${active ? c.ink : c.border}`,
+    background: active ? c.ink : 'transparent', color: active ? '#fff' : c.muted,
+    fontSize: '0.7rem', fontWeight: 500, textTransform: 'capitalize', cursor: 'pointer', fontFamily: font,
+  })
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#fafaf8' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: font, background: c.bg }}>
       <Sidebar active="Inbox" />
 
-      <main style={{ marginLeft: '260px', flex: 1, display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      <main style={{ marginLeft: '244px', flex: 1, display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
         {/* Conversation List */}
-        <div style={{ width: '380px', background: '#fff', borderRight: '1px solid #ebebeb', display: 'flex', flexDirection: 'column', height: '100vh' }}>
-          <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ width: '380px', background: c.surface, borderRight: `1px solid ${c.border}`, display: 'flex', flexDirection: 'column', height: '100vh' }}>
+          <div style={{ padding: '1.75rem 1.5rem', borderBottom: `1px solid ${c.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-              <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Inbox</p>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.6rem', color: '#bbb', letterSpacing: '0.05em' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1d9e75', animation: 'walterpulse 1.6s ease-in-out infinite' }} /> live
+              <p style={label}>Inbox</p>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', color: c.faint }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', animation: 'walterpulse 1.6s ease-in-out infinite' }} /> live
               </span>
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: '300', color: '#111', marginBottom: '0.3rem' }}>Conversations</h1>
-            <p style={{ color: '#ccc', fontSize: '0.72rem', marginBottom: '1rem' }}>{conversations.length} people{pausedCount > 0 ? ` · ${pausedCount} you're handling` : ''}</p>
+            <h1 style={{ ...pageTitle, fontSize: '1.4rem', marginBottom: '0.3rem' }}>Conversations</h1>
+            <p style={{ color: c.muted, fontSize: '0.78rem', marginBottom: '1rem' }}>{conversations.length} people{pausedCount > 0 ? ` · ${pausedCount} you're handling` : ''}</p>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               {['all', 'leads', 'paused'].map(f => (
-                <button key={f} onClick={() => setFilter(f)} style={{
-                  padding: '0.3rem 0.875rem', borderRadius: '20px', border: '1px solid',
-                  borderColor: filter === f ? '#111' : '#e8e8e8', background: filter === f ? '#111' : 'transparent',
-                  color: filter === f ? '#fff' : '#aaa', fontSize: '0.65rem', letterSpacing: '0.08em', textTransform: 'uppercase',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}>{f}</button>
+                <button key={f} onClick={() => setFilter(f)} style={filterChip(filter === f)}>{f}</button>
               ))}
             </div>
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {loading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#ccc', fontSize: '0.8rem' }}>Loading...</div>
+              <div style={{ padding: '2rem', textAlign: 'center', color: c.faint, fontSize: '0.85rem' }}>Loading…</div>
             ) : filtered.length === 0 ? (
-              <div style={{ padding: '3rem 2rem', textAlign: 'center', color: '#ccc' }}>
+              <div style={{ padding: '3rem 2rem', textAlign: 'center', color: c.faint }}>
                 <p style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>💬</p>
-                <p style={{ fontSize: '0.8rem' }}>No conversations{filter !== 'all' ? ' in this view' : ' yet'}</p>
+                <p style={{ fontSize: '0.85rem' }}>No conversations{filter !== 'all' ? ' in this view' : ' yet'}</p>
               </div>
-            ) : filtered.map(c => {
-              const tone = intentTone(c.score)
+            ) : filtered.map(conv => {
+              const tone = intentTone(conv.score)
               return (
                 <div
-                  key={c.username}
-                  onClick={() => selectConversation(c.username)}
+                  key={conv.username}
+                  onClick={() => selectConversation(conv.username)}
                   style={{
-                    padding: '1.1rem 1.5rem', borderBottom: '1px solid #f5f5f5', cursor: 'pointer',
-                    background: selectedUser === c.username ? '#fafaf8' : '#fff',
-                    borderLeft: selectedUser === c.username ? '2px solid #111' : '2px solid transparent',
-                    transition: 'all 0.15s'
+                    padding: '1rem 1.5rem', borderBottom: `1px solid ${c.border}`, cursor: 'pointer',
+                    background: selectedUser === conv.username ? c.surfaceAlt : c.surface,
+                    borderLeft: selectedUser === conv.username ? `2px solid ${c.ink}` : '2px solid transparent',
+                    transition: 'all 0.12s',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                    <p style={{ fontSize: '0.85rem', color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{c.username}</p>
-                    <AiSwitch on={c.aiEnabled} onClick={(e) => toggleAi(c.username, e)} />
+                    <p style={{ fontSize: '0.85rem', fontWeight: 500, color: c.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{conv.username}</p>
+                    <AiSwitch on={conv.aiEnabled} onClick={(e) => toggleAi(conv.username, e)} />
                   </div>
-                  <p style={{ fontSize: '0.76rem', color: '#999', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last.content}</p>
+                  <p style={{ fontSize: '0.78rem', color: c.muted, marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.last.content}</p>
                   <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.55rem', background: tone.bg, color: tone.color, padding: '0.15rem 0.45rem', borderRadius: '3px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tone.label} {c.score}</span>
-                    {c.isLead && <span style={{ fontSize: '0.55rem', background: '#fffaf0', color: '#8a6a2a', border: '1px solid #e6d8c8', padding: '0.15rem 0.4rem', borderRadius: '3px', letterSpacing: '0.08em' }}>LEAD</span>}
-                    {!c.aiEnabled && <span style={{ fontSize: '0.55rem', background: '#f5f5f3', color: '#999', padding: '0.15rem 0.4rem', borderRadius: '3px', letterSpacing: '0.08em' }}>YOU</span>}
-                    <span style={{ fontSize: '0.62rem', color: '#ccc', marginLeft: 'auto' }}>{timeAgo(c.last.created_at)}</span>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 500, background: tone.bg, color: tone.color, padding: '0.12rem 0.45rem', borderRadius: '5px', textTransform: 'uppercase', ...tabular }}>{tone.label} {conv.score}</span>
+                    {conv.isLead && <span style={{ fontSize: '0.6rem', fontWeight: 500, background: c.warnBg, color: c.warn, border: `1px solid ${c.warnBorder}`, padding: '0.12rem 0.4rem', borderRadius: '5px' }}>LEAD</span>}
+                    {!conv.aiEnabled && <span style={{ fontSize: '0.6rem', fontWeight: 500, background: c.surfaceAlt, color: c.muted, padding: '0.12rem 0.4rem', borderRadius: '5px' }}>YOU</span>}
+                    <span style={{ fontSize: '0.66rem', color: c.faint, marginLeft: 'auto' }}>{timeAgo(conv.last.created_at)}</span>
                   </div>
                 </div>
               )
@@ -248,24 +251,24 @@ export default function InboxPage() {
         </div>
 
         {/* Conversation Detail */}
-        <div style={{ flex: 1, padding: '2.5rem 3.5rem', overflowY: 'auto', background: '#fafaf8' }}>
+        <div style={{ flex: 1, padding: '2.25rem 3rem', overflowY: 'auto', background: c.bg }}>
           {!selected ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc' }}>
-              <p style={{ fontSize: '0.85rem' }}>Select a conversation</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: c.faint }}>
+              <p style={{ fontSize: '0.875rem' }}>Select a conversation</p>
             </div>
           ) : (
             <>
-              <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #ebebeb' }}>
+              <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: `1px solid ${c.border}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <p style={{ color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{selected.count} message{selected.count === 1 ? '' : 's'} · {timeAgo(selected.last.created_at)}</p>
-                    <h2 style={{ fontSize: '1.75rem', fontWeight: '300', color: '#111' }}>@{selected.username}</h2>
+                    <p style={{ ...label, marginBottom: '0.5rem' }}>{selected.count} message{selected.count === 1 ? '' : 's'} · {timeAgo(selected.last.created_at)}</p>
+                    <h2 style={{ ...pageTitle, fontSize: '1.5rem' }}>@{selected.username}</h2>
                   </div>
                   {/* AI control */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#fff', border: '1px solid #ebebeb', borderRadius: '12px', padding: '0.7rem 1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: c.surface, border: `1px solid ${c.border}`, borderRadius: radius.lg, padding: '0.6rem 0.9rem' }}>
                     <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontSize: '0.72rem', color: '#111', letterSpacing: '0.03em' }}>Walter AI</p>
-                      <p style={{ fontSize: '0.62rem', color: selected.aiEnabled ? '#1d9e75' : '#aaa' }}>{selected.aiEnabled ? 'Replying automatically' : 'Paused — you reply'}</p>
+                      <p style={{ fontSize: '0.78rem', fontWeight: 500, color: c.ink }}>Walter AI</p>
+                      <p style={{ fontSize: '0.68rem', color: selected.aiEnabled ? c.good : c.faint }}>{selected.aiEnabled ? 'Replying automatically' : 'Paused — you reply'}</p>
                     </div>
                     <AiSwitch on={selected.aiEnabled} onClick={(e) => toggleAi(selected.username, e)} size="md" />
                   </div>
@@ -273,57 +276,57 @@ export default function InboxPage() {
               </div>
 
               {!selected.aiEnabled && (
-                <div style={{ background: '#fff', border: '1px solid #ebebeb', borderLeft: '2px solid #1d9e75', borderRadius: '0 10px 10px 0', padding: '0.85rem 1.1rem', marginBottom: '1.5rem' }}>
-                  <p style={{ fontSize: '0.8rem', color: '#666' }}>You&apos;re handling this chat. Walter won&apos;t auto-reply to @{selected.username} until you switch it back on.</p>
+                <div style={{ background: c.surface, border: `1px solid ${c.border}`, borderLeft: '2px solid #22c55e', borderRadius: '0 8px 8px 0', padding: '0.8rem 1rem', marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.82rem', color: c.body }}>You&apos;re handling this chat. Walter won&apos;t auto-reply to @{selected.username} until you switch it back on.</p>
                 </div>
               )}
 
               {/* Thread */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.75rem' }}>
                 {selected.messages.map(m => (
                   <div key={m.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                    <div style={{ background: '#f0f0ee', borderRadius: '14px 14px 14px 4px', padding: '0.85rem 1.1rem', maxWidth: '70%' }}>
-                      <p style={{ color: '#555', fontSize: '0.85rem', lineHeight: '1.55' }}>{m.content}</p>
+                    <div style={{ background: c.surfaceAlt, borderRadius: '14px 14px 14px 4px', padding: '0.8rem 1rem', maxWidth: '70%' }}>
+                      <p style={{ color: c.body, fontSize: '0.875rem', lineHeight: 1.55 }}>{m.content}</p>
                     </div>
                     {m.ai_reply && (
-                      <div style={{ background: '#111', borderRadius: '14px 14px 4px 14px', padding: '0.85rem 1.1rem', maxWidth: '70%', alignSelf: 'flex-end' }}>
-                        <p style={{ color: '#fff', fontSize: '0.85rem', lineHeight: '1.55' }}>{m.ai_reply}</p>
-                        <p style={{ color: '#555', fontSize: '0.6rem', marginTop: '0.35rem', letterSpacing: '0.05em' }}>AI · sent automatically</p>
+                      <div style={{ background: c.ink, borderRadius: '14px 14px 4px 14px', padding: '0.8rem 1rem', maxWidth: '70%', alignSelf: 'flex-end' }}>
+                        <p style={{ color: '#fff', fontSize: '0.875rem', lineHeight: 1.55 }}>{m.ai_reply}</p>
+                        <p style={{ color: '#a1a1aa', fontSize: '0.62rem', marginTop: '0.35rem' }}>AI · sent automatically</p>
                       </div>
                     )}
                     {!m.ai_reply && m.status === 'manual' && (
-                      <p style={{ alignSelf: 'flex-end', fontSize: '0.62rem', color: '#bbb', fontStyle: 'italic' }}>awaiting your reply</p>
+                      <p style={{ alignSelf: 'flex-end', fontSize: '0.66rem', color: c.faint, fontStyle: 'italic' }}>awaiting your reply</p>
                     )}
                   </div>
                 ))}
               </div>
 
               {/* Draft a follow-up */}
-              <div style={{ background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)', maxWidth: '600px' }}>
+              <div style={{ ...card, maxWidth: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <p style={{ color: '#111', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <p style={{ ...label, color: c.ink, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span style={{ fontSize: '0.85rem' }}>✦</span> Draft a follow-up
                   </p>
                   <button onClick={handleDraft} disabled={drafting}
-                    style={{ padding: '0.5rem 1.2rem', borderRadius: '8px', border: '1px solid #111', background: '#111', color: '#fff', cursor: drafting ? 'default' : 'pointer', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', opacity: drafting ? 0.5 : 1, fontFamily: 'inherit' }}>
+                    style={{ padding: '0.45rem 1rem', borderRadius: radius.md, border: `1px solid ${c.ink}`, background: c.ink, color: '#fff', cursor: drafting ? 'default' : 'pointer', fontSize: '0.78rem', fontWeight: 500, opacity: drafting ? 0.5 : 1, fontFamily: font }}>
                     {drafting ? 'Drafting…' : draft ? 'Redraft' : 'Draft in my voice'}
                   </button>
                 </div>
                 {drafting ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {[90, 70].map((w, i) => (<div key={i} style={{ height: '13px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f3f3f1,#ececea,#f3f3f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />))}
+                    {[90, 70].map((w, i) => (<div key={i} style={{ height: '13px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f1,#e7e7e9,#f0f0f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />))}
                   </div>
                 ) : draft ? (
                   <div>
-                    <div style={{ background: '#fafaf8', borderLeft: '2px solid #111', borderRadius: '0 8px 8px 0', padding: '1rem 1.25rem', marginBottom: '0.875rem' }}>
-                      <p style={{ color: '#333', fontSize: '0.9rem', lineHeight: '1.65', fontStyle: 'italic' }}>{draft}</p>
+                    <div style={{ background: c.surfaceAlt, borderLeft: `2px solid ${c.ink}`, borderRadius: '0 8px 8px 0', padding: '0.9rem 1.1rem', marginBottom: '0.8rem' }}>
+                      <p style={{ color: c.body, fontSize: '0.9rem', lineHeight: 1.65 }}>{draft}</p>
                     </div>
-                    <button onClick={copyDraft} style={{ padding: '0.5rem 1.2rem', borderRadius: '8px', border: '1px solid #e8e8e8', background: copied ? '#f0faf0' : '#fff', color: copied ? '#2a7a2a' : '#888', cursor: 'pointer', fontSize: '0.65rem', letterSpacing: '0.05em', fontFamily: 'inherit' }}>
+                    <button onClick={copyDraft} style={{ padding: '0.45rem 1rem', borderRadius: radius.md, border: `1px solid ${copied ? c.goodBorder : c.border}`, background: copied ? c.goodBg : c.surface, color: copied ? c.good : c.muted, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500, fontFamily: font }}>
                       {copied ? 'Copied ✓' : 'Copy to clipboard'}
                     </button>
                   </div>
                 ) : (
-                  <p style={{ color: '#bbb', fontSize: '0.82rem', lineHeight: '1.6' }}>
+                  <p style={{ color: c.muted, fontSize: '0.85rem', lineHeight: 1.6 }}>
                     Walter will write a follow-up DM in your voice to re-open the conversation with @{selected.username}.
                   </p>
                 )}
