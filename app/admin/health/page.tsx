@@ -73,7 +73,7 @@ export default async function HealthPage() {
           </thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => { /* no-op; allow link */ }}>
+              <tr key={r.id}>
                 <td style={{ padding: '0.7rem 0.6rem', fontSize: '0.9rem', borderBottom: '1px solid #f4f4f5' }}>
                   <a href={`/admin/clients/${r.id}`} style={{ color: '#111', textDecoration: 'none' }}>{r.name}</a>
                 </td>
