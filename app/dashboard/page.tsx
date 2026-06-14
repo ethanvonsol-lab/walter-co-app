@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
+import { c, font, radius, card, label, statNumber, btn, input as inputStyle } from '@/lib/theme'
 
 interface Message {
   id: string
@@ -20,26 +21,12 @@ interface BriefingLead {
   reason: string
 }
 
-// Rough estimate of pipeline value per hot lead. Configurable in Settings later.
-const AVG_DEAL_VALUE = 1500
-
-const card: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid #ebebeb',
-  borderRadius: '16px',
-  padding: '1.75rem 2rem',
-  boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
-}
-
-const eyebrow: React.CSSProperties = {
-  color: '#bbb',
-  fontSize: '0.62rem',
-  letterSpacing: '0.2em',
-  textTransform: 'uppercase',
-}
+// Fallback when a client hasn't set their own average deal value yet.
+const DEFAULT_DEAL_VALUE = 1500
 
 export default function Dashboard() {
   const [clientName, setClientName] = useState('')
+  const [avgDealValue, setAvgDealValue] = useState(DEFAULT_DEAL_VALUE)
   const [messages, setMessages] = useState<Message[]>([])
   const [stats, setStats] = useState({ total: 0, leads: 0, escalated: 0, today: 0, todayLeads: 0 })
   const [chartData, setChartData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0])
@@ -66,6 +53,7 @@ export default function Dashboard() {
       const { data: client } = await supabase.from('clients').select('*').eq('email', user.email).single()
       if (!client) return
       setClientName(client.name || '')
+      if (client.avg_deal_value) setAvgDealValue(client.avg_deal_value)
 
       const { data: msgs } = await supabase
         .from('messages').select('*').eq('client_id', client.id).order('created_at', { ascending: false })
@@ -155,7 +143,7 @@ export default function Dashboard() {
     .join(' ')
 
   const pipelineValue = Math.round(
-    briefingLeads.reduce((sum, l) => sum + (l.score / 100) * AVG_DEAL_VALUE, 0)
+    briefingLeads.reduce((sum, l) => sum + (l.score / 100) * avgDealValue, 0)
   )
 
   const handleTest = async () => {
@@ -174,66 +162,66 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#fafaf8' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: font, background: c.bg }}>
       <Sidebar active="Dashboard" />
 
-      <main style={{ marginLeft: '260px', flex: 1, padding: '3.5rem 4rem' }}>
+      <main style={{ marginLeft: '244px', flex: 1, padding: '2.25rem 2.5rem', maxWidth: 1180 }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem', paddingBottom: '2rem', borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem' }}>
           <div>
-            <p style={{ ...eyebrow, fontSize: '0.65rem', letterSpacing: '0.25em', marginBottom: '0.5rem' }}>
-              {new Date().toLocaleDateString('en-NZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            <p style={{ ...label, marginBottom: '0.4rem' }}>
+              {new Date().toLocaleDateString('en-NZ', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
-            <h1 style={{ fontSize: '2.25rem', fontWeight: 300, color: '#111', letterSpacing: '0.01em' }}>
-              {getGreeting()}{clientName ? `, ${clientName}` : ''}.
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 600, color: c.ink, letterSpacing: '-0.02em' }}>
+              {getGreeting()}{clientName ? `, ${clientName}` : ''}
             </h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', background: '#fff', border: '1px solid #ebebeb', borderRadius: '999px', padding: '0.5rem 0.9rem' }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#1d9e75', animation: 'walterpulse 1.6s ease-in-out infinite' }} />
-            <span style={{ fontSize: '0.78rem', letterSpacing: '0.03em', color: '#444' }}>Walter is live</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: c.surface, border: `1px solid ${c.border}`, borderRadius: radius.pill, padding: '0.4rem 0.8rem' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', animation: 'walterpulse 1.6s ease-in-out infinite' }} />
+            <span style={{ fontSize: '0.8rem', color: c.body, fontWeight: 500 }}>Walter is live</span>
           </div>
         </div>
 
         {/* Walter Intelligence */}
-        <div style={{ ...card, padding: '2rem 2.25rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <p style={{ ...eyebrow, color: '#111', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem' }}>✦</span> Walter Intelligence
+        <div style={{ ...card, padding: '1.5rem 1.75rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <p style={{ ...label, color: c.ink, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ fontSize: '0.85rem' }}>✦</span> Walter Intelligence
             </p>
-            <span style={{ fontSize: '0.68rem', color: '#bbb', letterSpacing: '0.04em' }}>
-              {briefingLoading ? 'thinking…' : briefingTime ? `briefing generated ${briefingTime}` : ''}
+            <span style={{ fontSize: '0.75rem', color: c.faint }}>
+              {briefingLoading ? 'thinking…' : briefingTime ? `generated ${briefingTime}` : ''}
             </span>
           </div>
 
           {briefingLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
               {[92, 80, 64].map((w, i) => (
-                <div key={i} style={{ height: '14px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f3f3f1,#ececea,#f3f3f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />
+                <div key={i} style={{ height: '13px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f1,#e7e7e9,#f0f0f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />
               ))}
             </div>
           ) : (
-            <p style={{ fontSize: '1.15rem', lineHeight: 1.55, fontWeight: 300, color: '#222' }}>{briefing}</p>
+            <p style={{ fontSize: '1.0rem', lineHeight: 1.6, color: c.body }}>{briefing}</p>
           )}
 
           {!briefingLoading && (
-            <div style={{ borderTop: '1px solid #f2f2f0', paddingTop: '1.25rem', marginTop: '1.5rem' }}>
-              <p style={{ ...eyebrow, fontSize: '0.58rem', marginBottom: '1rem' }}>Act now · ranked by buying intent</p>
+            <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: '1.1rem', marginTop: '1.25rem' }}>
+              <p style={{ ...label, marginBottom: '0.85rem' }}>Act now · ranked by buying intent</p>
               {briefingLeads.length === 0 ? (
-                <p style={{ color: '#bbb', fontSize: '0.85rem' }}>No hot leads right now — Walter&apos;s watching every DM.</p>
+                <p style={{ color: c.faint, fontSize: '0.875rem' }}>No hot leads right now — Walter&apos;s watching every DM.</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                   {briefingLeads.map((lead, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1.1rem' }}>
-                      <span style={{ fontSize: '0.9rem', color: '#111', width: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{lead.username}</span>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span style={{ fontSize: '0.875rem', fontWeight: 500, color: c.ink, width: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{lead.username}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ height: '4px', background: '#f0f0ee', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.25rem' }}>
-                          <div style={{ width: `${lead.score}%`, height: '100%', background: '#111', transition: 'width 0.6s ease' }} />
+                        <div style={{ height: '5px', background: c.surfaceAlt, borderRadius: '4px', overflow: 'hidden', marginBottom: '0.3rem' }}>
+                          <div style={{ width: `${lead.score}%`, height: '100%', background: c.ink, transition: 'width 0.6s ease' }} />
                         </div>
-                        <p style={{ fontSize: '0.7rem', color: '#aaa' }}>{lead.reason}</p>
+                        <p style={{ fontSize: '0.74rem', color: c.faint }}>{lead.reason}</p>
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#888', width: '32px', textAlign: 'right' }}>{lead.score}</span>
-                      <a href="/dashboard/inbox" style={{ fontSize: '0.62rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: i === 0 ? '#111' : '#999', border: `1px solid ${i === 0 ? '#111' : '#e2e2e0'}`, borderRadius: '6px', padding: '0.4rem 0.85rem', textDecoration: 'none', fontFamily: 'inherit' }}>Reply</a>
+                      <span style={{ fontSize: '0.82rem', color: c.muted, width: '28px', textAlign: 'right' }}>{lead.score}</span>
+                      <a href="/dashboard/inbox" style={{ fontSize: '0.78rem', fontWeight: 500, color: i === 0 ? '#fff' : c.body, background: i === 0 ? c.ink : c.surface, border: `1px solid ${i === 0 ? c.ink : c.border}`, borderRadius: radius.sm, padding: '0.35rem 0.8rem', textDecoration: 'none' }}>Reply</a>
                     </div>
                   ))}
                 </div>
@@ -243,64 +231,62 @@ export default function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.1fr', gap: '1rem', marginBottom: '1rem' }}>
           <div style={card}>
-            <p style={{ ...eyebrow, marginBottom: '1rem' }}>Replies Today</p>
+            <p style={{ ...label, marginBottom: '0.85rem' }}>Replies Today</p>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: '2.75rem', fontWeight: 300, color: '#111', lineHeight: 1 }}>{stats.today}</p>
+              <p style={statNumber}>{stats.today}</p>
               <svg width="72" height="30" viewBox="0 0 60 26" style={{ overflow: 'visible' }}>
-                <polyline points={sparkPoints} fill="none" stroke="#111" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+                <polyline points={sparkPoints} fill="none" stroke={c.ink} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
               </svg>
             </div>
-            <p style={{ color: '#ccc', fontSize: '0.72rem', marginTop: '0.5rem' }}>{stats.total} all time</p>
+            <p style={{ color: c.faint, fontSize: '0.78rem', marginTop: '0.5rem' }}>{stats.total} all time</p>
           </div>
           <div style={card}>
-            <p style={{ ...eyebrow, marginBottom: '1rem' }}>Leads Captured</p>
-            <p style={{ fontSize: '2.75rem', fontWeight: 300, color: '#111', lineHeight: 1, marginBottom: '0.4rem' }}>{stats.todayLeads}</p>
-            <p style={{ color: '#ccc', fontSize: '0.72rem' }}>{stats.leads} all time · {stats.escalated} escalated</p>
+            <p style={{ ...label, marginBottom: '0.85rem' }}>Leads Captured</p>
+            <p style={{ ...statNumber, marginBottom: '0.4rem' }}>{stats.todayLeads}</p>
+            <p style={{ color: c.faint, fontSize: '0.78rem' }}>{stats.leads} all time · {stats.escalated} escalated</p>
           </div>
-          <div style={{ background: '#111', borderRadius: '16px', padding: '1.75rem 2rem' }}>
-            <p style={{ fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#777', marginBottom: '1rem' }}>Pipeline Value</p>
-            <p style={{ fontSize: '2.75rem', fontWeight: 300, color: '#fff', lineHeight: 1, marginBottom: '0.4rem' }}>
-              ${pipelineValue.toLocaleString()}
-            </p>
-            <p style={{ color: '#9a9a9a', fontSize: '0.72rem' }}>
+          <div style={{ background: c.ink, borderRadius: radius.lg, padding: '1.5rem' }}>
+            <p style={{ ...label, color: '#a1a1aa', marginBottom: '0.85rem' }}>Pipeline Value</p>
+            <p style={{ ...statNumber, color: '#fff', marginBottom: '0.4rem' }}>${pipelineValue.toLocaleString()}</p>
+            <p style={{ color: '#a1a1aa', fontSize: '0.78rem' }}>
               {briefingLoading ? 'estimating…' : `est. from ${briefingLeads.length} hot lead${briefingLeads.length === 1 ? '' : 's'}`}
             </p>
           </div>
         </div>
 
         {/* Chart + Funnel */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
           <div style={card}>
-            <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Reply Activity</p>
-            <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.75rem' }}>Messages replied to — last 7 days</p>
+            <p style={{ ...label, marginBottom: '0.3rem' }}>Reply Activity</p>
+            <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.5rem' }}>Messages replied to — last 7 days</p>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.6rem', height: '130px' }}>
               {chartData.map((val, i) => (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', height: '100%', justifyContent: 'flex-end' }}>
-                  <p style={{ color: '#ddd', fontSize: '0.6rem' }}>{val || ''}</p>
-                  <div style={{ width: '100%', background: val > 0 ? '#111' : '#f0f0f0', borderRadius: '3px 3px 0 0', height: `${Math.max((val / maxChart) * 100, val > 0 ? 8 : 3)}%`, transition: 'height 0.3s ease' }} />
-                  <p style={{ color: '#ccc', fontSize: '0.6rem' }}>{getDayLabel(i)}</p>
+                  <p style={{ color: c.faint, fontSize: '0.65rem' }}>{val || ''}</p>
+                  <div style={{ width: '100%', background: val > 0 ? c.ink : c.surfaceAlt, borderRadius: '4px 4px 0 0', height: `${Math.max((val / maxChart) * 100, val > 0 ? 8 : 3)}%`, transition: 'height 0.3s ease' }} />
+                  <p style={{ color: c.faint, fontSize: '0.65rem' }}>{getDayLabel(i)}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div style={card}>
-            <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Funnel</p>
-            <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.75rem' }}>Message to lead conversion</p>
+            <p style={{ ...label, marginBottom: '0.3rem' }}>Funnel</p>
+            <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.5rem' }}>Message to lead conversion</p>
             {[
               { label: 'Messages', value: stats.total, pct: 100 },
               { label: 'Leads', value: stats.leads, pct: stats.total > 0 ? Math.round((stats.leads / stats.total) * 100) : 0 },
               { label: 'Escalated', value: stats.escalated, pct: stats.total > 0 ? Math.round((stats.escalated / stats.total) * 100) : 0 },
             ].map((row, i) => (
               <div key={i} style={{ marginBottom: '1.1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <p style={{ color: '#888', fontSize: '0.75rem' }}>{row.label}</p>
-                  <p style={{ color: '#111', fontSize: '0.75rem' }}>{row.value}</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                  <p style={{ color: c.muted, fontSize: '0.8rem' }}>{row.label}</p>
+                  <p style={{ color: c.ink, fontSize: '0.8rem', fontWeight: 500 }}>{row.value}</p>
                 </div>
-                <div style={{ background: '#f5f5f3', borderRadius: '4px', height: '3px' }}>
-                  <div style={{ background: '#111', borderRadius: '4px', height: '3px', width: `${row.pct}%`, transition: 'width 0.5s ease' }} />
+                <div style={{ background: c.surfaceAlt, borderRadius: '4px', height: '5px' }}>
+                  <div style={{ background: c.ink, borderRadius: '4px', height: '5px', width: `${row.pct}%`, transition: 'width 0.5s ease' }} />
                 </div>
               </div>
             ))}
@@ -308,53 +294,53 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Activity + AI Test */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div style={card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <p style={eyebrow}>Live Activity</p>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.62rem', color: '#bbb', letterSpacing: '0.05em' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1d9e75', animation: 'walterpulse 1.6s ease-in-out infinite' }} /> real-time
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <p style={label}>Live Activity</p>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: c.faint }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', animation: 'walterpulse 1.6s ease-in-out infinite' }} /> real-time
               </span>
             </div>
             {messages.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#ddd' }}>
+              <div style={{ textAlign: 'center', padding: '2rem 0', color: c.faint }}>
                 <p style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>💬</p>
-                <p style={{ fontSize: '0.8rem' }}>No messages yet</p>
+                <p style={{ fontSize: '0.85rem' }}>No messages yet</p>
               </div>
             ) : messages.map(msg => (
-              <div key={msg.id} style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #f5f5f5', background: flashId === msg.id ? '#f6faf8' : 'transparent', borderLeft: flashId === msg.id ? '2px solid #1d9e75' : '2px solid transparent', paddingLeft: '0.6rem', marginLeft: '-0.6rem', borderRadius: '0 4px 4px 0', transition: 'background 0.6s ease' }}>
+              <div key={msg.id} style={{ paddingBottom: '0.9rem', marginBottom: '0.9rem', borderBottom: `1px solid ${c.border}`, background: flashId === msg.id ? '#f0fdf4' : 'transparent', borderLeft: flashId === msg.id ? '2px solid #22c55e' : '2px solid transparent', paddingLeft: '0.6rem', marginLeft: '-0.6rem', borderRadius: '0 4px 4px 0', transition: 'background 0.6s ease' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <p style={{ fontSize: '0.82rem', color: '#111' }}>@{msg.from_username}</p>
-                  {msg.is_lead && <span style={{ fontSize: '0.58rem', background: '#111', color: '#fff', padding: '0.2rem 0.5rem', borderRadius: '4px', letterSpacing: '0.08em' }}>LEAD</span>}
+                  <p style={{ fontSize: '0.85rem', fontWeight: 500, color: c.ink }}>@{msg.from_username}</p>
+                  {msg.is_lead && <span style={{ fontSize: '0.62rem', fontWeight: 500, background: c.ink, color: '#fff', padding: '0.15rem 0.45rem', borderRadius: '5px' }}>LEAD</span>}
                 </div>
-                <p style={{ fontSize: '0.78rem', color: '#888', marginBottom: '0.2rem' }}>{msg.content}</p>
-                <p style={{ fontSize: '0.75rem', color: '#bbb', fontStyle: 'italic' }}>↳ {msg.ai_reply}</p>
+                <p style={{ fontSize: '0.82rem', color: c.muted, marginBottom: '0.2rem' }}>{msg.content}</p>
+                <p style={{ fontSize: '0.8rem', color: c.faint }}>↳ {msg.ai_reply}</p>
               </div>
             ))}
           </div>
 
           <div style={card}>
-            <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Test Your AI</p>
-            <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.5rem' }}>Simulate an incoming message</p>
+            <p style={{ ...label, marginBottom: '0.3rem' }}>Test Your AI</p>
+            <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.25rem' }}>Simulate an incoming message</p>
             <input
               type="text"
               value={testMessage}
               onChange={e => setTestMessage(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleTest()}
               placeholder="e.g. How much do your sessions cost?"
-              style={{ width: '100%', padding: '0.825rem 1rem', borderRadius: '8px', border: '1px solid #ebebeb', fontSize: '0.82rem', color: '#111', background: '#fafaf8', boxSizing: 'border-box', marginBottom: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
+              style={{ ...inputStyle, marginBottom: '0.75rem' }}
             />
             <button
               onClick={handleTest}
               disabled={loading || !testMessage}
-              style={{ width: '100%', padding: '0.825rem', borderRadius: '8px', border: '1px solid #111', background: '#111', color: '#fff', cursor: 'pointer', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', opacity: loading || !testMessage ? 0.4 : 1, fontFamily: 'inherit' }}
+              style={{ ...btn, width: '100%', padding: '0.65rem', opacity: loading || !testMessage ? 0.4 : 1 }}
             >
-              {loading ? 'Generating...' : 'Generate Reply →'}
+              {loading ? 'Generating…' : 'Generate Reply →'}
             </button>
             {testReply && (
-              <div style={{ marginTop: '1.25rem', padding: '1.25rem', background: '#fafaf8', borderRadius: '8px', borderLeft: '2px solid #111' }}>
-                <p style={{ ...eyebrow, fontSize: '0.6rem', letterSpacing: '0.15em', marginBottom: '0.6rem' }}>AI Response</p>
-                <p style={{ color: '#444', fontSize: '0.85rem', lineHeight: 1.7, fontStyle: 'italic' }}>{testReply}</p>
+              <div style={{ marginTop: '1.1rem', padding: '1.1rem', background: c.surfaceAlt, borderRadius: radius.md, borderLeft: `2px solid ${c.ink}` }}>
+                <p style={{ ...label, marginBottom: '0.5rem' }}>AI Response</p>
+                <p style={{ color: c.body, fontSize: '0.875rem', lineHeight: 1.65 }}>{testReply}</p>
               </div>
             )}
           </div>

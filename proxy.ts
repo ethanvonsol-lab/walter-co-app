@@ -35,9 +35,11 @@ export async function proxy(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const path = req.nextUrl.pathname
   const isProtected =
-    req.nextUrl.pathname.startsWith('/dashboard') ||
-    req.nextUrl.pathname.startsWith('/widget')
+    path.startsWith('/dashboard') ||
+    path.startsWith('/widget') ||
+    path.startsWith('/admin')
 
   if (isProtected && !user) {
     const url = req.nextUrl.clone()
@@ -45,9 +47,25 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Admin gate — coarse check at the proxy. The per-page server check in
+  // app/admin/layout.tsx is the source of truth (it uses the service-role
+  // client). We block obvious non-admins here so they never hit a render.
+  if (path.startsWith('/admin') && user?.email) {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('is_admin')
+      .eq('email', user.email)
+      .maybeSingle()
+    if (!client?.is_admin) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
   return res
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/widget/:path*'],
+  matcher: ['/dashboard/:path*', '/widget/:path*', '/admin/:path*'],
 }

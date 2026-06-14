@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
-
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #ebebeb', borderRadius: '16px', padding: '1.75rem 2rem', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }
-const eyebrow: React.CSSProperties = { color: '#bbb', fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase' }
+import { c, font, card, label, pageTitle, muted, statNumber, tabular } from '@/lib/theme'
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState({ total: 0, leads: 0, escalated: 0, replied: 0 })
@@ -95,34 +93,34 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Cormorant Garamond", Georgia, serif', background: '#fafaf8' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: font, background: c.bg }}>
       <Sidebar active="Analytics" />
 
-      <main style={{ marginLeft: '260px', flex: 1, padding: '3.5rem 4rem', overflowY: 'auto' }}>
+      <main style={{ marginLeft: '244px', flex: 1, padding: '2.25rem 2.5rem', overflowY: 'auto', maxWidth: 1180 }}>
 
-        <div style={{ marginBottom: '2.5rem', paddingBottom: '2rem', borderBottom: '1px solid #f0f0f0' }}>
-          <p style={{ ...eyebrow, fontSize: '0.62rem', letterSpacing: '0.25em', marginBottom: '0.5rem' }}>Reporting</p>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: '300', color: '#111' }}>Analytics</h1>
-          <p style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '0.5rem' }}>Performance overview for your Instagram automation.</p>
+        <div style={{ marginBottom: '1.75rem' }}>
+          <p style={{ ...label, marginBottom: '0.4rem' }}>Reporting</p>
+          <h1 style={pageTitle}>Analytics</h1>
+          <p style={{ ...muted, marginTop: '0.3rem' }}>Performance overview for your Instagram automation.</p>
         </div>
 
         {/* AI Insights */}
-        <div style={{ ...card, padding: '1.75rem 2rem', marginBottom: '1.5rem' }}>
-          <p style={{ ...eyebrow, color: '#111', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ ...card, marginBottom: '1rem' }}>
+          <p style={{ ...label, color: c.ink, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span style={{ fontSize: '0.9rem' }}>✦</span> Walter&apos;s Read
           </p>
           {insightsLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {[88, 76, 82].map((w, i) => (
-                <div key={i} style={{ height: '13px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f3f3f1,#ececea,#f3f3f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />
+                <div key={i} style={{ height: '13px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f1,#e7e7e9,#f0f0f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />
               ))}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
               {insights.map((line, i) => (
-                <div key={i} style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#111', marginTop: '0.55rem', flexShrink: 0 }} />
-                  <p style={{ color: '#333', fontSize: '1rem', lineHeight: '1.5', fontWeight: 300 }}>{line}</p>
+                <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: c.ink, marginTop: '0.5rem', flexShrink: 0 }} />
+                  <p style={{ color: c.body, fontSize: '0.95rem', lineHeight: 1.55 }}>{line}</p>
                 </div>
               ))}
             </div>
@@ -130,11 +128,11 @@ export default function AnalyticsPage() {
         </div>
 
         {loading ? (
-          <p style={{ color: '#ccc', fontSize: '0.85rem' }}>Loading...</p>
+          <p style={{ color: c.faint, fontSize: '0.875rem' }}>Loading…</p>
         ) : (
           <>
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
               {[
                 { label: 'Total Messages', value: stats.total },
                 { label: 'Replies Sent', value: stats.replied },
@@ -142,55 +140,55 @@ export default function AnalyticsPage() {
                 { label: 'Conversion Rate', value: `${conversionRate}%` },
               ].map(stat => (
                 <div key={stat.label} style={card}>
-                  <p style={{ ...eyebrow, marginBottom: '1rem' }}>{stat.label}</p>
-                  <p style={{ fontSize: '2.5rem', fontWeight: '300', color: '#111', lineHeight: 1 }}>{stat.value}</p>
+                  <p style={{ ...label, marginBottom: '0.85rem' }}>{stat.label}</p>
+                  <p style={statNumber}>{stat.value}</p>
                 </div>
               ))}
             </div>
 
             {/* 30-day trend */}
-            <div style={{ ...card, marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem' }}>
+            <div style={{ ...card, marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.25rem' }}>
                 <div>
-                  <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Message Volume</p>
-                  <p style={{ color: '#ccc', fontSize: '0.75rem' }}>Incoming DMs — last 30 days</p>
+                  <p style={{ ...label, marginBottom: '0.3rem' }}>Message Volume</p>
+                  <p style={{ color: c.faint, fontSize: '0.8rem' }}>Incoming DMs — last 30 days</p>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: weekDelta >= 0 ? '#1d9e75' : '#cc4444' }}>
+                <p style={{ fontSize: '0.82rem', fontWeight: 500, color: weekDelta >= 0 ? c.good : c.bad, ...tabular }}>
                   {weekDelta >= 0 ? '↑' : '↓'} {Math.abs(weekDelta)}% vs prior week
                 </p>
               </div>
               <svg viewBox="0 0 600 150" preserveAspectRatio="none" style={{ width: '100%', height: '180px', display: 'block' }}>
-                <path d={areaPath} fill="#111" fillOpacity="0.04" />
-                <path d={linePath} fill="none" stroke="#111" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+                <path d={areaPath} fill={c.ink} fillOpacity="0.05" />
+                <path d={linePath} fill="none" stroke={c.ink} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
               </svg>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-                <span style={{ color: '#ccc', fontSize: '0.6rem' }}>{dateLabel(0)}</span>
-                <span style={{ color: '#ccc', fontSize: '0.6rem' }}>{dateLabel(15)}</span>
-                <span style={{ color: '#ccc', fontSize: '0.6rem' }}>{dateLabel(29)}</span>
+                <span style={{ color: c.faint, fontSize: '0.66rem' }}>{dateLabel(0)}</span>
+                <span style={{ color: c.faint, fontSize: '0.66rem' }}>{dateLabel(15)}</span>
+                <span style={{ color: c.faint, fontSize: '0.66rem' }}>{dateLabel(29)}</span>
               </div>
             </div>
 
             {/* Keywords + Funnel */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div style={card}>
-                <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Top Keywords</p>
-                <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.5rem' }}>Most common words in incoming messages</p>
+                <p style={{ ...label, marginBottom: '0.3rem' }}>Top Keywords</p>
+                <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.5rem' }}>Most common words in incoming messages</p>
                 {topKeywords.length === 0 ? (
-                  <p style={{ color: '#ccc', fontSize: '0.8rem' }}>No data yet</p>
+                  <p style={{ color: c.faint, fontSize: '0.85rem' }}>No data yet</p>
                 ) : topKeywords.map((kw, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.875rem' }}>
-                    <p style={{ color: '#888', fontSize: '0.8rem', width: '80px' }}>{kw.word}</p>
-                    <div style={{ flex: 1, background: '#f5f5f3', borderRadius: '3px', height: '3px' }}>
-                      <div style={{ background: '#111', borderRadius: '3px', height: '3px', width: `${(kw.count / (topKeywords[0]?.count || 1)) * 100}%` }} />
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.85rem' }}>
+                    <p style={{ color: c.body, fontSize: '0.82rem', width: '80px' }}>{kw.word}</p>
+                    <div style={{ flex: 1, background: c.surfaceAlt, borderRadius: '4px', height: '5px' }}>
+                      <div style={{ background: c.ink, borderRadius: '4px', height: '5px', width: `${(kw.count / (topKeywords[0]?.count || 1)) * 100}%` }} />
                     </div>
-                    <p style={{ color: '#ccc', fontSize: '0.75rem', width: '20px', textAlign: 'right' }}>{kw.count}</p>
+                    <p style={{ color: c.faint, fontSize: '0.78rem', width: '20px', textAlign: 'right', ...tabular }}>{kw.count}</p>
                   </div>
                 ))}
               </div>
 
               <div style={card}>
-                <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Conversion Funnel</p>
-                <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.5rem' }}>From message to lead</p>
+                <p style={{ ...label, marginBottom: '0.3rem' }}>Conversion Funnel</p>
+                <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.5rem' }}>From message to lead</p>
                 {[
                   { label: 'Messages Received', value: stats.total, pct: 100 },
                   { label: 'Replied by AI', value: stats.replied, pct: stats.total > 0 ? Math.round((stats.replied / stats.total) * 100) : 0 },
@@ -198,15 +196,15 @@ export default function AnalyticsPage() {
                   { label: 'Escalated', value: stats.escalated, pct: stats.total > 0 ? Math.round((stats.escalated / stats.total) * 100) : 0 },
                 ].map((row, i) => (
                   <div key={i} style={{ marginBottom: '1.1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                      <p style={{ color: '#888', fontSize: '0.78rem' }}>{row.label}</p>
-                      <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <p style={{ color: '#ccc', fontSize: '0.75rem' }}>{row.pct}%</p>
-                        <p style={{ color: '#111', fontSize: '0.75rem', width: '20px', textAlign: 'right' }}>{row.value}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                      <p style={{ color: c.body, fontSize: '0.8rem' }}>{row.label}</p>
+                      <div style={{ display: 'flex', gap: '0.75rem', ...tabular }}>
+                        <p style={{ color: c.faint, fontSize: '0.78rem' }}>{row.pct}%</p>
+                        <p style={{ color: c.ink, fontSize: '0.78rem', fontWeight: 500, width: '24px', textAlign: 'right' }}>{row.value}</p>
                       </div>
                     </div>
-                    <div style={{ background: '#f5f5f3', borderRadius: '3px', height: '3px' }}>
-                      <div style={{ background: '#111', borderRadius: '3px', height: '3px', width: `${row.pct}%`, transition: 'width 0.5s ease' }} />
+                    <div style={{ background: c.surfaceAlt, borderRadius: '4px', height: '5px' }}>
+                      <div style={{ background: c.ink, borderRadius: '4px', height: '5px', width: `${row.pct}%`, transition: 'width 0.5s ease' }} />
                     </div>
                   </div>
                 ))}
@@ -214,12 +212,12 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Lead volume sparkbars */}
-            <div style={{ ...card, marginBottom: '1.5rem' }}>
-              <p style={{ ...eyebrow, marginBottom: '0.4rem' }}>Lead Volume</p>
-              <p style={{ color: '#ccc', fontSize: '0.75rem', marginBottom: '1.5rem' }}>Leads captured — last 30 days</p>
+            <div style={{ ...card, marginBottom: '1rem' }}>
+              <p style={{ ...label, marginBottom: '0.3rem' }}>Lead Volume</p>
+              <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.5rem' }}>Leads captured — last 30 days</p>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '70px' }}>
                 {leadSeries.map((val, i) => (
-                  <div key={i} style={{ flex: 1, background: val > 0 ? '#111' : '#f3f3f1', borderRadius: '2px 2px 0 0', height: `${Math.max((val / maxLead) * 100, val > 0 ? 10 : 4)}%`, transition: 'height 0.3s ease' }} title={`${dateLabel(i)}: ${val}`} />
+                  <div key={i} style={{ flex: 1, background: val > 0 ? c.ink : c.surfaceAlt, borderRadius: '2px 2px 0 0', height: `${Math.max((val / maxLead) * 100, val > 0 ? 10 : 4)}%`, transition: 'height 0.3s ease' }} title={`${dateLabel(i)}: ${val}`} />
                 ))}
               </div>
             </div>
