@@ -10,6 +10,7 @@ interface Client {
   agency_id: string | null; instagram_account_id: string | null; access_token: string | null
   voice_profile: string | null; notes: string | null; is_admin: boolean
   created_at: string; paused_at: string | null
+  billing_status?: string | null; stripe_customer_id?: string | null; stripe_subscription_id?: string | null
 }
 interface Message { id: string; from_username: string; content: string; ai_reply: string; is_lead: boolean; status: string; created_at: string }
 interface Lead { id: string; from_username: string; intent: string | null; created_at: string }
@@ -25,6 +26,17 @@ export default function ClientDetail({ client: c0, agencyLabel, messages, leads,
   const [impersonateUrl, setImpersonateUrl] = useState('')
   const [igStatus, setIgStatus] = useState<{ connected: boolean; username?: string | null; reason?: string; error?: string } | null>(null)
   const [checking, setChecking] = useState(false)
+  const [billingUrl, setBillingUrl] = useState('')
+  const [billingLoading, setBillingLoading] = useState(false)
+
+  const createBillingLink = async () => {
+    setBillingLoading(true); setBillingUrl('')
+    const res = await fetch(`/api/admin/clients/${client.id}/checkout`, { method: 'POST' })
+    const data = await res.json()
+    setBillingLoading(false)
+    if (data.url) setBillingUrl(data.url)
+    else alert(data.message || data.error || 'Could not create payment link')
+  }
 
   const checkIG = async () => {
     setChecking(true)
@@ -134,6 +146,34 @@ export default function ClientDetail({ client: c0, agencyLabel, messages, leads,
           <p style={eyebrow}>Leads (recent)</p>
           <p style={{ fontSize: '2rem', color: '#111', marginTop: '0.4rem' }}>{leads.length}</p>
         </div>
+      </div>
+
+      {/* Billing */}
+      <div style={{ ...(card as React.CSSProperties), marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <p style={eyebrow}>Billing</p>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#444' }}>
+              {(() => {
+                const bs = client.billing_status || 'none'
+                if (bs === 'active' || bs === 'trialing') return <><Pill tone="good">{bs}</Pill> · ${client.mrr.toLocaleString()}/mo</>
+                if (bs === 'past_due') return <><Pill tone="bad">past due</Pill> · payment failed</>
+                if (bs === 'canceled') return <><Pill tone="bad">canceled</Pill></>
+                return <><Pill tone="neutral">not billed</Pill> · ${client.mrr.toLocaleString()}/mo + ${client.setup_fee} setup</>
+              })()}
+            </p>
+            {client.stripe_subscription_id && <p style={{ ...muted, fontSize: '0.72rem', marginTop: '0.3rem', fontFamily: 'monospace' }}>{client.stripe_subscription_id}</p>}
+          </div>
+          <button onClick={createBillingLink} disabled={billingLoading} style={{ ...btn, opacity: billingLoading ? 0.6 : 1 }}>
+            {billingLoading ? 'Creating…' : (client.billing_status === 'active' ? 'New payment link' : 'Create payment link')}
+          </button>
+        </div>
+        {billingUrl && (
+          <div style={{ marginTop: '1rem', padding: '0.85rem', background: '#f4f4f5', borderRadius: 10 }}>
+            <p style={{ ...muted, fontSize: '0.8rem', marginBottom: '0.4rem' }}>Send this Stripe checkout link to {client.email}. They pay → the account flips to active automatically.</p>
+            <input readOnly value={billingUrl} onFocus={e => e.currentTarget.select()} style={{ ...input, fontFamily: 'monospace', fontSize: '0.75rem' }} />
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>

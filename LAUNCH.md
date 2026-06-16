@@ -85,11 +85,27 @@ When the nightly health check finds a broken Instagram token, it posts to
 - Discord: Server Settings → Integrations → Webhooks → New → copy URL.
 - Set `ALERT_WEBHOOK_URL` in Vercel. Leave blank to disable.
 
-## 9. Stripe billing  — future (not built)
+## 9. Stripe billing  ✅ BUILT (code) — needs your Stripe account
 
-Currently MRR is tracked manually per client in the admin panel. When you want real
-billing, that's a dedicated build (Stripe account, products/prices, checkout, webhook
-to sync subscription status → `clients.status`/`mrr`). Flag it when you're ready.
+Automated subscription billing is wired. Each client is billed exactly the `mrr`
+(monthly) + `setup_fee` (one-time) you set on their record — no Stripe price IDs to
+manage. From a client's admin page, **"Create payment link"** generates a Stripe
+Checkout URL you send them; when they pay, the webhook flips them to `active` and
+keeps billing status in sync.
+
+To turn it on:
+1. Run `supabase/stripe.sql` in the Supabase SQL editor (adds the stripe columns).
+2. Create a **Stripe account**. Stay in **Test mode** until launch day.
+3. Stripe → Developers → **API keys** → copy the **Secret key** → set `STRIPE_SECRET_KEY`
+   in `.env.local` and Vercel.
+4. Stripe → Developers → **Webhooks** → Add endpoint:
+   - URL: `https://YOUR-DOMAIN/api/stripe/webhook`
+   - Events: `checkout.session.completed`, `customer.subscription.updated`,
+     `customer.subscription.deleted`, `invoice.payment_failed`
+   - Copy the **Signing secret** (`whsec_…`) → set `STRIPE_WEBHOOK_SECRET`.
+5. Test with Stripe's test card `4242 4242 4242 4242` (any future date / any CVC).
+6. When ready for real money: toggle Stripe to **Live mode**, swap in the live
+   `sk_live_…` key + a live webhook signing secret, redeploy.
 
 ## 10. End-to-end smoke test on prod  ⚠️ before first real client
 
