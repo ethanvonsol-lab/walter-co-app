@@ -43,7 +43,10 @@ export default function NewClientForm({ agencies }: { agencies: Agency[] }) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed')
-      window.location.href = `/admin/clients/${data.id}`
+      // If the invite email couldn't send (no SMTP yet), flag it on the detail
+      // page so the admin knows to onboard via the "View as client" link.
+      const suffix = data.emailSent ? '' : '?welcome=no_email'
+      window.location.href = `/admin/clients/${data.id}${suffix}`
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed')
       setSubmitting(false)
