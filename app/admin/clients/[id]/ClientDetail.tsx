@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { card, eyebrow, h1, muted, btn, btnGhost, input, label as Label, Pill } from '@/components/admin-ui'
 
@@ -28,6 +28,16 @@ export default function ClientDetail({ client: c0, agencyLabel, messages, leads,
   const [checking, setChecking] = useState(false)
   const [billingUrl, setBillingUrl] = useState('')
   const [billingLoading, setBillingLoading] = useState(false)
+  const [welcomeNoEmail, setWelcomeNoEmail] = useState(false)
+
+  // Flag set by the create-client flow when the invite email couldn't send.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('welcome') === 'no_email') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from URL query on mount
+      setWelcomeNoEmail(true)
+      window.history.replaceState({}, '', `/admin/clients/${c0.id}`)
+    }
+  }, [c0.id])
 
   const createBillingLink = async () => {
     setBillingLoading(true); setBillingUrl('')
@@ -113,6 +123,15 @@ export default function ClientDetail({ client: c0, agencyLabel, messages, leads,
           <button onClick={del} style={{ ...btnGhost, color: '#b91c1c', borderColor: '#fecaca' }}>Delete</button>
         </div>
       </div>
+
+      {welcomeNoEmail && !impersonateUrl && (
+        <div style={{ ...(card as React.CSSProperties), marginBottom: '1.5rem', background: '#eff6ff', borderColor: '#bfdbfe' }}>
+          <p style={eyebrow}>Account created — email not sent</p>
+          <p style={{ margin: '0.6rem 0', color: '#1d4ed8', fontSize: '0.88rem' }}>
+            The invite email couldn&apos;t be sent (email isn&apos;t set up yet). To get {client.email} into their dashboard, click <strong>View as client</strong> above — it generates a one-time login link you can send them directly (DM, text, etc.).
+          </p>
+        </div>
+      )}
 
       {impersonateUrl && (
         <div style={{ ...(card as React.CSSProperties), marginBottom: '1.5rem', background: '#fffbeb', borderColor: '#fde68a' }}>

@@ -24,13 +24,31 @@ export async function POST(req: NextRequest) {
   // Invite — sends an email with a one-time link that lands them on
   // /set-password, where they choose a password and continue to the dashboard.
   const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || ''
+  const alreadyRegistered = (msg: string) => /already.*regist|already been regist|email.*exists/i.test(msg)
+
+  // Preferred path: invite by email (creates the user + emails a set-password
+  // link). But if email delivery isn't configured yet (no SMTP / no domain),
+  // that errors — so we fall back to creating the user directly with NO email,
+  // and the admin onboards them via the "View as client" magic link instead.
+  // Either way, account creation never blocks on email.
+  let emailSent = false
   const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
     data: { invited_by: admin.email, role: 'client' },
     redirectTo: origin ? `${origin}/set-password` : undefined,
   })
 
-  if (invite.error && !/already.*registered/i.test(invite.error.message)) {
-    return NextResponse.json({ error: invite.error.message }, { status: 400 })
+  if (!invite.error) {
+    emailSent = true
+  } else if (!alreadyRegistered(invite.error.message)) {
+    // Invite failed (most likely email send). Create the auth user without email.
+    const created = await supabaseAdmin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { invited_by: admin.email, role: 'client' },
+    })
+    if (created.error && !alreadyRegistered(created.error.message)) {
+      return NextResponse.json({ error: created.error.message }, { status: 400 })
+    }
   }
 
   const { data: client, error } = await supabaseAdmin
@@ -62,9 +80,9 @@ export async function POST(req: NextRequest) {
     client_id: client.id, from_username: '__default__', ai_enabled: true,
   }).select().maybeSingle()
 
-  await logAudit(admin.email, 'client.create', client.id, { email, plan })
+  await logAudit(admin.email, 'client.create', client.id, { email, plan, emailSent })
 
-  return NextResponse.json({ id: client.id })
+  return NextResponse.json({ id: client.id, emailSent })
 }
 
 export async function GET() {
