@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
-import { c, font, radius, card, label, statNumber, btn, input as inputStyle } from '@/lib/theme'
+import { c, font, radius, card, label, muted, statNumber, btn, input as inputStyle } from '@/lib/theme'
 
 interface Message {
   id: string
@@ -40,6 +40,9 @@ export default function Dashboard() {
   const [briefingTime, setBriefingTime] = useState('')
   const [flashId, setFlashId] = useState<string | null>(null)
 
+  // First-run setup progress, derived from the client's own record.
+  const [setup, setSetup] = useState({ loaded: false, voice: false, instagram: false, hasMessages: false })
+
   useEffect(() => {
     const isToday = (iso: string) => {
       const d = new Date(iso)
@@ -57,6 +60,14 @@ export default function Dashboard() {
 
       const { data: msgs } = await supabase
         .from('messages').select('*').eq('client_id', client.id).order('created_at', { ascending: false })
+
+      setSetup({
+        loaded: true,
+        voice: !!(client.voice_profile && client.voice_profile.trim()),
+        instagram: !!client.instagram_account_id,
+        hasMessages: !!(msgs && msgs.length > 0),
+      })
+
       if (msgs) {
         setMessages(msgs.slice(0, 5))
         setStats({
@@ -182,6 +193,31 @@ export default function Dashboard() {
             <span style={{ fontSize: '0.8rem', color: c.body, fontWeight: 500 }}>Walter is live</span>
           </div>
         </div>
+
+        {/* First-run setup checklist — shows until voice + Instagram are set up. */}
+        {setup.loaded && !(setup.voice && setup.instagram) && (
+          <div style={{ ...card, marginBottom: '1rem', borderColor: c.ink }}>
+            <p style={{ ...label, color: c.ink, marginBottom: '0.3rem' }}>Finish setting up</p>
+            <p style={{ ...muted, marginBottom: '1.1rem' }}>A couple of quick steps and Walter starts replying to your DMs.</p>
+            {([
+              { done: setup.voice, title: 'Train your voice profile', desc: 'Teach Walter how you talk.', href: '/dashboard/voice', cta: 'Set up' },
+              { done: setup.instagram, title: 'Connect Instagram', desc: 'Link your account so Walter can reply.', href: '/dashboard/connections', cta: 'Connect' },
+            ]).map((step, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.7rem 0', borderTop: i > 0 ? `1px solid ${c.border}` : 'none' }}>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', background: step.done ? '#22c55e' : c.surfaceAlt, color: step.done ? '#fff' : c.faint, border: step.done ? 'none' : `1px solid ${c.border}` }}>
+                  {step.done ? '✓' : i + 1}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 500, color: c.ink, textDecoration: step.done ? 'line-through' : 'none', opacity: step.done ? 0.6 : 1 }}>{step.title}</p>
+                  {!step.done && <p style={{ fontSize: '0.78rem', color: c.muted }}>{step.desc}</p>}
+                </div>
+                {!step.done && (
+                  <a href={step.href} style={{ ...btn, textDecoration: 'none', padding: '0.45rem 1rem', fontSize: '0.82rem' }}>{step.cta} →</a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Walter Intelligence */}
         <div style={{ ...card, padding: '1.5rem 1.75rem', marginBottom: '1rem' }}>
