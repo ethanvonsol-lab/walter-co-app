@@ -48,6 +48,21 @@ export default function ClientDetail({ client: c0, agencyLabel, messages, leads,
     else alert(data.message || data.error || 'Could not create payment link')
   }
 
+  const [pw, setPw] = useState('')
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwSet, setPwSet] = useState(false)
+
+  const setClientPassword = async () => {
+    setPwSaving(true); setPwSet(false)
+    const res = await fetch(`/api/admin/clients/${client.id}/set-password`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }),
+    })
+    const data = await res.json()
+    setPwSaving(false)
+    if (res.ok) setPwSet(true)
+    else alert(data.error || 'Could not set password')
+  }
+
   const checkIG = async () => {
     setChecking(true)
     const res = await fetch('/api/instagram/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: client.id }) })
@@ -124,19 +139,38 @@ export default function ClientDetail({ client: c0, agencyLabel, messages, leads,
         </div>
       </div>
 
-      {welcomeNoEmail && !impersonateUrl && (
+      {welcomeNoEmail && (
         <div style={{ ...(card as React.CSSProperties), marginBottom: '1.5rem', background: '#eff6ff', borderColor: '#bfdbfe' }}>
           <p style={eyebrow}>Account created — email not sent</p>
-          <p style={{ margin: '0.6rem 0', color: '#1d4ed8', fontSize: '0.88rem' }}>
-            The invite email couldn&apos;t be sent (email isn&apos;t set up yet). To get {client.email} into their dashboard, click <strong>View as client</strong> above — it generates a one-time login link you can send them directly (DM, text, etc.).
+          <p style={{ margin: '0.6rem 0 0', color: '#1d4ed8', fontSize: '0.88rem' }}>
+            Email isn&apos;t set up yet, so no invite was sent. Onboard {client.email} by <strong>setting a login password</strong> below and sharing it with them — they sign in at <code>/login</code>.
           </p>
         </div>
       )}
 
+      {/* Set login password — reliable, email-free onboarding. */}
+      <div style={{ ...(card as React.CSSProperties), marginBottom: '1.5rem' }}>
+        <p style={eyebrow}>Set login password</p>
+        <p style={{ ...muted, margin: '0.4rem 0 0.9rem' }}>Give {client.email} a password (no email needed). Share it with them; they sign in at <code>/login</code> and can change it later.</p>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', maxWidth: 460 }}>
+          <input
+            type="text"
+            value={pw}
+            onChange={e => { setPw(e.target.value); setPwSet(false) }}
+            placeholder="At least 8 characters"
+            style={{ ...input, fontFamily: 'monospace' }}
+          />
+          <button onClick={setClientPassword} disabled={pwSaving || pw.length < 8} style={{ ...btn, whiteSpace: 'nowrap', opacity: pwSaving || pw.length < 8 ? 0.5 : 1 }}>
+            {pwSaving ? 'Setting…' : pwSet ? 'Set ✓' : 'Set password'}
+          </button>
+        </div>
+        {pwSet && <p style={{ color: '#15803d', fontSize: '0.85rem', marginTop: '0.6rem' }}>Done — {client.email} can now sign in at /login with this password.</p>}
+      </div>
+
       {impersonateUrl && (
         <div style={{ ...(card as React.CSSProperties), marginBottom: '1.5rem', background: '#fffbeb', borderColor: '#fde68a' }}>
           <p style={eyebrow}>One-time magic link</p>
-          <p style={{ margin: '0.6rem 0', color: '#b45309', fontSize: '0.88rem' }}>Open this in a private/incognito window to sign in as {client.email}. Single-use.</p>
+          <p style={{ margin: '0.6rem 0', color: '#b45309', fontSize: '0.88rem' }}>Open this in a private/incognito window to sign in as {client.email}. Single-use — if it says &quot;expired,&quot; use the password method above instead (more reliable).</p>
           <input readOnly value={impersonateUrl} onFocus={e => e.currentTarget.select()} style={{ ...input, fontFamily: 'monospace', fontSize: '0.75rem' }} />
         </div>
       )}
