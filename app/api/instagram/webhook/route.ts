@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseServer as supabase } from '@/lib/supabase-server'
+import { buildSalesSystemPrompt } from '@/lib/sales-prompt'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -22,7 +23,6 @@ async function sendInstagramReply(recipientId: string, message: string, accessTo
     }
   )
   const data = await response.json()
-  console.log('Instagram reply response:', JSON.stringify(data))
   return data
 }
 
@@ -41,14 +41,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  console.log('Webhook received:', JSON.stringify(body, null, 2))
 
   try {
     const entry = body.entry?.[0]
     const messaging = entry?.messaging?.[0]
-
-    console.log('Entry ID:', entry?.id)
-    console.log('Messaging:', JSON.stringify(messaging, null, 2))
 
     if (!messaging) {
       return NextResponse.json({ status: 'no messaging' })
@@ -66,8 +62,6 @@ export async function POST(req: NextRequest) {
       .select('*')
       .eq('instagram_account_id', entry.id)
       .single()
-
-    console.log('Client found:', clientData ? 'yes' : 'no')
 
     if (!clientData) {
       return NextResponse.json({ status: 'client not found', entry_id: entry.id })
@@ -88,29 +82,14 @@ export async function POST(req: NextRequest) {
     // fall back to the shared token (the original single-account setup).
     const accessToken = clientData.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || ''
 
-    const voiceProfile = clientData.voice_profile || ''
-
     let aiReply = ''
     if (aiEnabled) {
+    // Build the sales-focused system prompt: the client's voice + their offer,
+    // goal, and how aggressive they want the AI to close. See lib/sales-prompt.ts.
     const response = await client.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 300,
-      system: `You are replying to Instagram DMs on behalf of a real person. Your job is to sound EXACTLY like them — not like an AI, not like a customer service rep, just a real human texting back.
-
-${voiceProfile ? `Here is everything you need to know about this person and how they communicate:\n${voiceProfile}` : 'Be warm, friendly and conversational.'}
-
-RULES — follow these strictly:
-- Write like a real person texting. Short, natural, casual sentences.
-- Never use corporate language, buzzwords, or overly polished phrases.
-- No bullet points, no lists, no formal structure.
-- Match the energy of the message — if they're excited, be excited back. If they're casual, be casual.
-- Use the occasional lowercase, natural punctuation. Don't over-punctuate.
-- Keep it to 1-3 sentences MAX. People don't write essays over DM.
-- Always end with either a question to keep the convo going, or a clear next step.
-- If asked about pricing, specific availability, or anything sensitive: be warm and redirect — "haha good question — let me get [owner name] to reach out to you directly about that 😊 what's the best way to contact you?"
-- If someone seems angry or is complaining: acknowledge it genuinely, don't be defensive, offer to help.
-- NEVER mention you are an AI. Ever. Under any circumstances.
-- NEVER start a message with "Hey!" every single time — vary how you open.`,
+      system: buildSalesSystemPrompt(clientData),
       messages: [
         { role: 'user', content: messageText }
       ],

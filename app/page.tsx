@@ -42,6 +42,7 @@ export default function HomePage() {
   const [demoReply, setDemoReply] = useState('')
   const [demoLoading, setDemoLoading] = useState(false)
   const [scrollY, setScrollY] = useState(0)
+  const [openFaq, setOpenFaq] = useState<number | null>(0)
   const heroRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -107,6 +108,7 @@ Always end with a question to keep the conversation going.`
           <a href="#how-it-works" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', letterSpacing: '0.05em' }}>How it works</a>
           <a href="#demo" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', letterSpacing: '0.05em' }}>Live Demo</a>
           <a href="#pricing" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', letterSpacing: '0.05em' }}>Pricing</a>
+          <a href="#faq" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', letterSpacing: '0.05em' }}>FAQ</a>
           <a href="#agencies" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', letterSpacing: '0.05em' }}>Agencies</a>
           <a href="/login" style={{ padding: '0.6rem 1.5rem', borderRadius: '6px', background: '#111', color: '#fff', fontSize: '0.72rem', textDecoration: 'none', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Login</a>
         </div>
@@ -117,18 +119,18 @@ Always end with a question to keep the conversation going.`
         <div>
   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#f0f0f0', borderRadius: '20px', padding: '0.4rem 1rem', marginBottom: '2rem' }}>
     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2a7a2a' }} />
-    <p style={{ fontSize: '0.7rem', color: '#666', letterSpacing: '0.1em' }}>AI is active and running</p>
+    <p style={{ fontSize: '0.7rem', color: '#666', letterSpacing: '0.1em' }}>Your 24/7 AI sales rep is online</p>
   </div>
   <h1 style={{ fontSize: 'clamp(2.5rem, 4.5vw, 4.5rem)', fontWeight: '300', lineHeight: '1.1', letterSpacing: '-0.01em', marginBottom: '2rem' }}>
     Stop replying<br />
     to DMs.<br />
-    <span style={{ fontStyle: 'italic', color: '#888' }}>Let AI do it.</span>
+    <span style={{ fontStyle: 'italic', color: '#888' }}>Start closing sales.</span>
   </h1>
-  <p style={{ fontSize: '1.05rem', color: '#777', lineHeight: '1.75', maxWidth: '440px', marginBottom: '1.5rem', fontWeight: '300' }}>
-    Every unanswered DM is a lost lead. Every hour spent replying manually is an hour not spent growing your business.
+  <p style={{ fontSize: '1.15rem', color: '#444', lineHeight: '1.6', maxWidth: '440px', marginBottom: '1.5rem', fontWeight: '400' }}>
+    A 24/7 AI sales rep that sounds exactly like you — qualifying leads and closing them while you sleep.
   </p>
   <p style={{ fontSize: '1.05rem', color: '#777', lineHeight: '1.75', maxWidth: '440px', marginBottom: '3rem', fontWeight: '300' }}>
-    Walter & Co trains an AI on your exact voice — it handles every DM 24/7, captures leads automatically, and sounds exactly like you.
+    Every unanswered DM is a lost sale. Walter trains an AI on your voice <em>and</em> your sales playbook — it works every DM, handles objections, and drives leads to book, buy, or hand over their details.
   </p>
   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
     <a href="mailto:ethanvonl@icloud.com" style={{ padding: '1rem 2.5rem', borderRadius: '8px', background: '#111', color: '#fff', textDecoration: 'none', fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
@@ -138,8 +140,17 @@ Always end with a question to keep the conversation going.`
       Try the live demo ↓
     </a>
   </div>
-  <div style={{ display: 'flex', gap: '2.5rem', marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #f0f0f0' }}>
-    {[{ v: '< 3s', l: 'Reply time' }, { v: '24/7', l: 'Always on' }, { v: '100%', l: 'Your voice' }].map(s => (
+  {/* Trust signals — truthful: official Meta API + Claude, no unverified badges */}
+  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+    {['Built on Meta’s official API', 'Powered by Claude', 'Encrypted & secure'].map(t => (
+      <div key={t} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <span style={{ color: '#2a7a2a', fontSize: '0.75rem' }}>✓</span>
+        <p style={{ color: '#999', fontSize: '0.72rem', letterSpacing: '0.02em' }}>{t}</p>
+      </div>
+    ))}
+  </div>
+  <div style={{ display: 'flex', gap: '2.5rem', marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid #f0f0f0' }}>
+    {[{ v: '< 3s', l: 'Reply time' }, { v: '24/7', l: 'Always closing' }, { v: '100%', l: 'Your voice' }].map(s => (
       <div key={s.l}>
         <p style={{ fontSize: '1.5rem', fontWeight: '300', color: '#111' }}>{s.v}</p>
         <p style={{ color: '#bbb', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>{s.l}</p>
@@ -295,9 +306,9 @@ Always end with a question to keep the conversation going.`
 <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1.5rem', maxWidth: '500px', lineHeight: '1.2' }}>Set up once. Run forever.</h2>
 <p style={{ color: '#999', fontSize: '1rem', lineHeight: '1.7', maxWidth: '500px', marginBottom: '5rem' }}>Most businesses are still replying to DMs manually in 2026. That&apos;s hours of your week gone — and messages still falling through the cracks. There&apos;s a better way.</p>        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4rem' }}>
           {[
-            { num: '01', title: 'We train your AI', desc: 'Answer 10 questions about your tone, personality, and business. We build an AI that replies exactly how you would.' },
-            { num: '02', title: 'Connect Instagram', desc: 'Link your Instagram account in one click. The AI starts monitoring your DMs and comments immediately.' },
-            { num: '03', title: 'Watch leads come in', desc: 'Every message gets a personalised reply. Leads are captured and sent to your dashboard in real time.' },
+            { num: '01', title: 'We train your AI', desc: 'A few quick questions about your voice, your offer, and how you sell. We build an AI that replies exactly how you would — and closes like your best rep.' },
+            { num: '02', title: 'Connect Instagram', desc: 'Link your Instagram account in one click. The AI starts working your DMs and comments immediately.' },
+            { num: '03', title: 'Watch leads close', desc: 'Every message gets a personalised reply that qualifies and pushes for the next step. Leads land in your dashboard in real time.' },
           ].map(step => (
             <div key={step.num}>
               <p style={{ color: '#e0e0e0', fontSize: '4rem', fontWeight: '300', marginBottom: '1.5rem', lineHeight: 1 }}>{step.num}</p>
@@ -367,8 +378,52 @@ Always end with a question to keep the conversation going.`
         </div>
       </section>
 
+      {/* Comparison — Hire someone vs. Walter & Co */}
+      <section style={{ padding: '8rem 4rem', background: '#f7f7f5' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>The Comparison</p>
+          <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Hire someone, or hire Walter.</h2>
+          <p style={{ color: '#999', fontSize: '1rem', marginBottom: '3.5rem', maxWidth: '520px', lineHeight: '1.7' }}>A salesperson costs thousands a month, works one shift, and takes months to sound like you. Walter does it all from day one.</p>
+
+          <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid #ebebeb', overflow: 'hidden', boxShadow: '0 2px 20px rgba(0,0,0,0.04)' }}>
+            {/* Header row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr' }}>
+              <div style={{ padding: '1.5rem 1.75rem' }} />
+              <div style={{ padding: '1.5rem 1.75rem', textAlign: 'center', borderLeft: '1px solid #f0f0f0' }}>
+                <p style={{ color: '#888', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Hiring someone</p>
+              </div>
+              <div style={{ padding: '1.5rem 1.75rem', textAlign: 'center', background: '#111' }}>
+                <p style={{ color: '#fff', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Walter &amp; Co</p>
+              </div>
+            </div>
+            {[
+              { feature: 'Monthly cost', human: '$3,000–5,000 salary', walter: '$500 flat' },
+              { feature: 'Availability', human: 'One shift, sick days, holidays', walter: '24/7/365, never off' },
+              { feature: 'Response time', human: 'Minutes to hours', walter: 'Under 3 seconds' },
+              { feature: 'Sounds like you', human: 'Months to learn your voice', walter: 'Trained on your voice day one' },
+              { feature: 'Sells consistently', human: 'Varies with mood & energy', walter: 'On-script, on-brand, every time' },
+              { feature: 'Time to go live', human: 'Weeks of hiring & training', walter: 'Live in 48 hours' },
+              { feature: 'Scales with volume', human: 'Hire more people', walter: 'Handles unlimited DMs' },
+            ].map((row, i) => (
+              <div key={row.feature} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', borderTop: '1px solid #f0f0f0' }}>
+                <div style={{ padding: '1.15rem 1.75rem', display: 'flex', alignItems: 'center' }}>
+                  <p style={{ color: '#111', fontSize: '0.88rem', fontWeight: '500' }}>{row.feature}</p>
+                </div>
+                <div style={{ padding: '1.15rem 1.75rem', textAlign: 'center', borderLeft: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.3rem' }}>
+                  <p style={{ color: '#999', fontSize: '0.82rem', lineHeight: '1.4' }}>{row.human}</p>
+                </div>
+                <div style={{ padding: '1.15rem 1.75rem', textAlign: 'center', background: i % 2 === 0 ? '#fafafa' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <span style={{ color: '#2a7a2a', fontSize: '0.85rem', flexShrink: 0 }}>✓</span>
+                  <p style={{ color: '#111', fontSize: '0.85rem', fontWeight: '500', lineHeight: '1.4' }}>{row.walter}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
-      <section id="pricing" style={{ padding: '8rem 4rem', background: '#f7f7f5' }}>
+      <section id="pricing" style={{ padding: '8rem 4rem', background: '#fff' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Pricing</p>
           <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Simple, transparent pricing.</h2>
@@ -409,6 +464,45 @@ Always end with a question to keep the conversation going.`
                 </a>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" style={{ padding: '8rem 4rem', background: '#f7f7f5' }}>
+        <div style={{ maxWidth: '760px', margin: '0 auto' }}>
+          <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>FAQ</p>
+          <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Questions, answered.</h2>
+          <p style={{ color: '#999', fontSize: '1rem', marginBottom: '3.5rem', lineHeight: '1.7' }}>Everything you might be wondering before you hand your DMs to an AI.</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[
+              { q: 'Will the AI actually sound like me?', a: 'Yes — that’s the whole point. During setup we capture how you talk, your tone, your phrases, even the things you’d never say. Every reply comes out in your voice, not a generic chatbot voice. Most people can’t tell it isn’t you.' },
+              { q: 'What if it says something wrong?', a: 'The AI is trained on your rules and your offer, and it’s built to stay in its lane. For anything sensitive — exact pricing, guarantees, edge cases — it warmly redirects and captures the lead instead of guessing. You can also jump into any conversation from your dashboard and take over at any time.' },
+              { q: 'How much does it cost?', a: 'USD $500/month plus a one-time $350 setup fee. No long contracts — cancel anytime. The setup fee is refundable within the first 14 days if it’s not the right fit.' },
+              { q: 'How fast can I go live?', a: 'We have your AI trained and replying within 48 hours of signing up. Setup is a few quick questions and a one-click Instagram connection.' },
+              { q: 'Is my data safe? Do you need my password?', a: 'No password sharing, ever. We connect through Meta’s official Instagram API, the same secure standard the big tools use. Your data is encrypted, never sold, and only used to power your replies.' },
+              { q: 'What happens with complex questions or unhappy customers?', a: 'The AI acknowledges, stays calm, and never gets defensive. When something needs a human, it’s flagged in your dashboard so nothing falls through — and you can step in and reply yourself whenever you want.' },
+              { q: 'Can I cancel anytime?', a: 'Yes. It’s month-to-month with no lock-in. Cancel whenever you like — and within the first 14 days, the setup fee is refundable too.' },
+            ].map((item, i) => {
+              const open = openFaq === i
+              return (
+                <div key={item.q} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #ebebeb', overflow: 'hidden' }}>
+                  <button
+                    onClick={() => setOpenFaq(open ? null : i)}
+                    style={{ width: '100%', textAlign: 'left', padding: '1.4rem 1.75rem', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', fontFamily: 'inherit' }}
+                  >
+                    <span style={{ fontSize: '1rem', fontWeight: '500', color: '#111' }}>{item.q}</span>
+                    <span style={{ fontSize: '1.25rem', color: '#bbb', flexShrink: 0, transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s', lineHeight: 1 }}>+</span>
+                  </button>
+                  {open && (
+                    <div style={{ padding: '0 1.75rem 1.5rem' }}>
+                      <p style={{ color: '#777', fontSize: '0.92rem', lineHeight: '1.7' }}>{item.a}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
