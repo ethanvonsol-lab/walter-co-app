@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
+import FeedbackForm from '@/components/FeedbackForm'
 import { c, font, radius, card, label as themeLabel, input as themeInput, btn, pageTitle, muted } from '@/lib/theme'
 
 export default function SettingsPage() {
@@ -215,6 +216,9 @@ export default function SettingsPage() {
           >
             {saved ? 'Saved ✓' : 'Save settings'}
           </button>
+
+          {/* Feedback */}
+          <FeedbackForm />
 
           {/* Account */}
           <div style={card}>

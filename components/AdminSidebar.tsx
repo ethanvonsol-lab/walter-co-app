@@ -9,6 +9,8 @@ const navItems = [
   { label: 'New Client', href: '/admin/clients/new' },
   { label: 'Agencies', href: '/admin/agencies' },
   { label: 'Revenue', href: '/admin/revenue' },
+  { label: 'Feedback', href: '/admin/feedback' },
+  { label: 'Daily Note', href: '/admin/daily' },
   { label: 'Health', href: '/admin/health' },
   { label: 'Audit Log', href: '/admin/audit' },
 ]

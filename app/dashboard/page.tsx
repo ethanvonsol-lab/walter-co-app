@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
+import DailyMessage from '@/components/DailyMessage'
 import { c, font, radius, card, label, muted, statNumber, btn, input as inputStyle } from '@/lib/theme'
 
 interface Message {
@@ -193,6 +194,9 @@ export default function Dashboard() {
             <span style={{ fontSize: '0.8rem', color: c.body, fontWeight: 500 }}>Walter is live</span>
           </div>
         </div>
+
+        {/* Daily note from Ethan — newest admin broadcast, dismissible. */}
+        <DailyMessage />
 
         {/* First-run setup checklist — shows until voice + Instagram are set up. */}
         {setup.loaded && !(setup.voice && setup.instagram) && (

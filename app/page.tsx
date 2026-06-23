@@ -422,8 +422,35 @@ Always end with a question to keep the conversation going.`
         </div>
       </section>
 
+      {/* Founder */}
+      <section style={{ padding: '8rem 4rem', background: '#fff' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: '0.8fr 1.2fr', gap: '4rem', alignItems: 'center' }}>
+          {/* Photo placeholder — swap the background for a real photo */}
+          <div style={{ aspectRatio: '1 / 1', borderRadius: '20px', background: 'linear-gradient(135deg, #f0f0f0, #e4e4e4)', border: '1px solid #ebebeb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: '300' }}>E</span>
+            </div>
+            <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Your photo here</p>
+          </div>
+
+          <div>
+            <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>The Founder</p>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: '300', marginBottom: '0.75rem', letterSpacing: '-0.01em' }}>Made by Ethan von Landkammer</h2>
+            <p style={{ color: '#888', fontSize: '1rem', marginBottom: '2rem' }}>3 years in marketing. Now building the future of AI sales.</p>
+            {/* Placeholder quote — replace with your own message */}
+            <p style={{ color: '#555', fontSize: '1.1rem', lineHeight: '1.75', fontStyle: 'italic', marginBottom: '2rem', borderLeft: '2px solid #111', paddingLeft: '1.5rem' }}>
+              “I built Walter &amp; Co because I watched too many great businesses lose real sales to a full inbox. This is the tool I wish I&apos;d had — it never sleeps, never forgets to follow up, and always sounds like you.”
+            </p>
+            <div style={{ display: 'flex', gap: '1.5rem' }}>
+              <a href="https://instagram.com/walterandco.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: '2px' }}>Instagram ↗</a>
+              <a href="#" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: '2px' }}>LinkedIn ↗</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
-      <section id="pricing" style={{ padding: '8rem 4rem', background: '#fff' }}>
+      <section id="pricing" style={{ padding: '8rem 4rem', background: '#f7f7f5' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Pricing</p>
           <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Simple, transparent pricing.</h2>
@@ -469,7 +496,7 @@ Always end with a question to keep the conversation going.`
       </section>
 
       {/* FAQ */}
-      <section id="faq" style={{ padding: '8rem 4rem', background: '#f7f7f5' }}>
+      <section id="faq" style={{ padding: '8rem 4rem', background: '#fff' }}>
         <div style={{ maxWidth: '760px', margin: '0 auto' }}>
           <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>FAQ</p>
           <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Questions, answered.</h2>
@@ -487,7 +514,7 @@ Always end with a question to keep the conversation going.`
             ].map((item, i) => {
               const open = openFaq === i
               return (
-                <div key={item.q} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #ebebeb', overflow: 'hidden' }}>
+                <div key={item.q} style={{ background: '#fafafa', borderRadius: '14px', border: '1px solid #ebebeb', overflow: 'hidden' }}>
                   <button
                     onClick={() => setOpenFaq(open ? null : i)}
                     style={{ width: '100%', textAlign: 'left', padding: '1.4rem 1.75rem', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', fontFamily: 'inherit' }}

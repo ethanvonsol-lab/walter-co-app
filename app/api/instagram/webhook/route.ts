@@ -67,6 +67,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'client not found', entry_id: entry.id })
     }
 
+    // Auto-pause: detect when the OWNER replies to a DM manually and step aside.
+    // Instagram delivers messages sent by the business account as "echoes"
+    // (message.is_echo === true). Echoes sent through an app (incl. our own AI
+    // replies) carry an app_id; messages typed by hand in the Instagram app do
+    // not. So an echo with no app_id == the owner jumped in → pause the AI for
+    // that conversation so we don't talk over them. They can resume from the
+    // inbox toggle. (Requires the Meta app to be subscribed to `message_echoes`;
+    // if it isn't, no echoes arrive and this simply never fires.)
+    if (messaging.message?.is_echo) {
+      if (messaging.message?.app_id) {
+        return NextResponse.json({ status: 'echo ignored (app message)' })
+      }
+      const follower = messaging.recipient?.id
+      if (follower) {
+        await supabase.from('conversation_settings').upsert(
+          { client_id: clientData.id, from_username: follower, ai_enabled: false, updated_at: new Date().toISOString() },
+          { onConflict: 'client_id,from_username' },
+        )
+      }
+      return NextResponse.json({ status: 'owner replied — AI paused', from_username: follower })
+    }
+
     // Per-conversation AI switch: if the owner paused the bot for this person,
     // record the DM but don't auto-reply (they're taking the convo over).
     // Defensive — a missing conversation_settings table/row defaults to enabled.
