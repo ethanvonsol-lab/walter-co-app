@@ -67,20 +67,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'client not found', entry_id: entry.id })
     }
 
-    // Auto-pause: detect when the OWNER replies to a DM manually and step aside.
-    // Instagram delivers messages sent by the business account as "echoes"
-    // (message.is_echo === true). Echoes sent through an app (incl. our own AI
-    // replies) carry an app_id; messages typed by hand in the Instagram app do
-    // not. So an echo with no app_id == the owner jumped in → pause the AI for
-    // that conversation so we don't talk over them. They can resume from the
-    // inbox toggle. Confirmed working on the Instagram Login API: echoes arrive
-    // via the already-subscribed `messages` field — there is no separate
-    // `message_echoes` subscription on this API, and none is needed.
+    // Auto-pause: when the OWNER replies to a DM by hand, step aside for that
+    // conversation. Instagram echoes back EVERY message sent by the business
+    // account (message.is_echo === true) — including our own AI replies. On the
+    // Instagram Login API `app_id` is NOT a reliable "this came from our app"
+    // signal (our API-sent replies usually have none), so we can't use it to
+    // tell our own replies apart from a human one. Instead we match the echo
+    // text against the AI reply we just stored for this person: a match means
+    // it's our own message → ignore; no match means the owner typed it → pause
+    // the AI (they resume from the inbox toggle).
     if (messaging.message?.is_echo) {
-      if (messaging.message?.app_id) {
-        return NextResponse.json({ status: 'echo ignored (app message)' })
-      }
       const follower = messaging.recipient?.id
+      const echoText = (messaging.message?.text || '').trim()
+
+      // Did WE just send this exact text to this person? Then it's our own AI
+      // reply echoing back — never pause on that.
+      let isOwnReply = false
+      if (follower && echoText) {
+        const since = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+        const { data: ownReply } = await supabase
+          .from('messages')
+          .select('id')
+          .eq('client_id', clientData.id)
+          .eq('from_username', follower)
+          .eq('ai_reply', echoText)
+          .gte('created_at', since)
+          .limit(1)
+          .maybeSingle()
+        isOwnReply = !!ownReply
+      }
+
+      if (isOwnReply) {
+        return NextResponse.json({ status: 'echo ignored (our AI reply)' })
+      }
+
+      // No match → a human (the owner) sent it → pause the AI for this convo.
       if (follower) {
         await supabase.from('conversation_settings').upsert(
           { client_id: clientData.id, from_username: follower, ai_enabled: false, updated_at: new Date().toISOString() },
