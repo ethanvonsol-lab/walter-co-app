@@ -128,6 +128,27 @@ export async function POST(req: NextRequest) {
 
     let aiReply = ''
     if (aiEnabled) {
+    // Conversation memory: pull the recent thread with this person so the AI
+    // knows what's already been said and doesn't re-ask questions or restart
+    // with a greeting. Only rows that have both an inbound message and a reply
+    // are included, which keeps the user/assistant turns cleanly alternating.
+    const { data: history } = await supabase
+      .from('messages')
+      .select('content, ai_reply')
+      .eq('client_id', clientData.id)
+      .eq('from_username', senderId)
+      .eq('status', 'replied')
+      .order('created_at', { ascending: false })
+      .limit(12)
+
+    const priorTurns = (history || [])
+      .reverse()
+      .filter(m => m.content && m.ai_reply)
+      .flatMap(m => ([
+        { role: 'user' as const, content: m.content as string },
+        { role: 'assistant' as const, content: m.ai_reply as string },
+      ]))
+
     // Build the sales-focused system prompt: the client's voice + their offer,
     // goal, and how aggressive they want the AI to close. See lib/sales-prompt.ts.
     const response = await client.messages.create({
@@ -135,7 +156,8 @@ export async function POST(req: NextRequest) {
       max_tokens: 300,
       system: buildSalesSystemPrompt(clientData),
       messages: [
-        { role: 'user', content: messageText }
+        ...priorTurns,
+        { role: 'user', content: messageText },
       ],
     })
 
