@@ -41,9 +41,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  // TEMP DIAGNOSTIC (remove after auto-pause testing): log raw IG payloads so we
-  // can see whether Instagram delivers an echo when the owner replies by hand.
-  console.log('[ig-webhook] payload', JSON.stringify(body))
 
   try {
     const entry = body.entry?.[0]
@@ -76,8 +73,9 @@ export async function POST(req: NextRequest) {
     // replies) carry an app_id; messages typed by hand in the Instagram app do
     // not. So an echo with no app_id == the owner jumped in → pause the AI for
     // that conversation so we don't talk over them. They can resume from the
-    // inbox toggle. (Requires the Meta app to be subscribed to `message_echoes`;
-    // if it isn't, no echoes arrive and this simply never fires.)
+    // inbox toggle. Confirmed working on the Instagram Login API: echoes arrive
+    // via the already-subscribed `messages` field — there is no separate
+    // `message_echoes` subscription on this API, and none is needed.
     if (messaging.message?.is_echo) {
       if (messaging.message?.app_id) {
         return NextResponse.json({ status: 'echo ignored (app message)' })
