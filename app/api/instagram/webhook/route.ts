@@ -41,6 +41,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
+  // TEMP DIAGNOSTIC (remove after auto-pause testing): log raw IG payloads so we
+  // can see whether Instagram delivers an echo when the owner replies by hand.
+  console.log('[ig-webhook] payload', JSON.stringify(body))
 
   try {
     const entry = body.entry?.[0]
