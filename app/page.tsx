@@ -425,25 +425,36 @@ Always end with a question to keep the conversation going.`
       {/* Founder */}
       <section style={{ padding: '8rem 4rem', background: '#fff' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: '0.8fr 1.2fr', gap: '4rem', alignItems: 'center' }}>
-          {/* Photo placeholder — swap the background for a real photo */}
-          <div style={{ aspectRatio: '1 / 1', borderRadius: '20px', background: 'linear-gradient(135deg, #f0f0f0, #e4e4e4)', border: '1px solid #ebebeb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: '300' }}>E</span>
+          {/* Founder photo. Drop your picture at public/founder.jpg — the img
+              overlays the placeholder; if the file is missing it hides itself
+              (onError) and the placeholder shows through. */}
+          <div style={{ position: 'relative', aspectRatio: '1 / 1', borderRadius: '20px', overflow: 'hidden', background: 'linear-gradient(135deg, #f0f0f0, #e4e4e4)', border: '1px solid #ebebeb' }}>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: '300' }}>E</span>
+              </div>
+              <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Your photo here</p>
             </div>
-            <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Your photo here</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/founder.jpg"
+              alt="Ethan von Landkammer"
+              onError={e => { e.currentTarget.style.display = 'none' }}
+              ref={el => { if (el && el.complete && el.naturalWidth === 0) el.style.display = 'none' }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           </div>
 
           <div>
             <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>The Founder</p>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: '300', marginBottom: '0.75rem', letterSpacing: '-0.01em' }}>Made by Ethan von Landkammer</h2>
-            <p style={{ color: '#888', fontSize: '1rem', marginBottom: '2rem' }}>3 years in marketing. Now building the future of AI sales.</p>
-            {/* Placeholder quote — replace with your own message */}
+            <h2 style={{ fontSize: '2.5rem', fontWeight: '300', marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>Ethan von Landkammer</h2>
+            <p style={{ color: '#888', fontSize: '0.95rem', letterSpacing: '0.02em', marginBottom: '2rem' }}>CEO &amp; Founder, Walter &amp; Co</p>
             <p style={{ color: '#555', fontSize: '1.1rem', lineHeight: '1.75', fontStyle: 'italic', marginBottom: '2rem', borderLeft: '2px solid #111', paddingLeft: '1.5rem' }}>
-              “I built Walter &amp; Co because I watched too many great businesses lose real sales to a full inbox. This is the tool I wish I&apos;d had — it never sleeps, never forgets to follow up, and always sounds like you.”
+              “Honestly, this started out of pure frustration. I was answering the same handful of questions in my DMs all day, every day — the same stuff on repeat — and it was burning hours I didn&apos;t have. So I trained an AI to handle it exactly the way I would: in my voice, around the clock, never letting a real lead slip through. Turns out nearly everyone I knew had the same headache. And then I thought — why stop at sounding like me? Why not give it the skillset of the best salesman on the planet? That&apos;s why Walter &amp; Co exists.”
             </p>
             <div style={{ display: 'flex', gap: '1.5rem' }}>
               <a href="https://instagram.com/walterandco.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: '2px' }}>Instagram ↗</a>
-              <a href="#" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: '2px' }}>LinkedIn ↗</a>
+              <a href="https://www.linkedin.com/in/ethan-von-landkammer-256006419/" target="_blank" rel="noopener noreferrer" style={{ color: '#888', fontSize: '0.8rem', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: '2px' }}>LinkedIn ↗</a>
             </div>
           </div>
         </div>
