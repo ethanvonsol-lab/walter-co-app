@@ -402,7 +402,7 @@ Always end with a question to keep the conversation going.`
               { feature: 'Response time', human: 'Minutes to hours', walter: 'Under 3 seconds' },
               { feature: 'Sounds like you', human: 'Months to learn your voice', walter: 'Trained on your voice day one' },
               { feature: 'Sells consistently', human: 'Varies with mood & energy', walter: 'On-script, on-brand, every time' },
-              { feature: 'Time to go live', human: 'Weeks of hiring & training', walter: 'Live in 48 hours' },
+              { feature: 'Time to go live', human: 'Weeks of hiring & training', walter: 'Live in 24 hours' },
               { feature: 'Scales with volume', human: 'Hire more people', walter: 'Handles unlimited DMs' },
             ].map((row, i) => (
               <div key={row.feature} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', borderTop: '1px solid #f0f0f0' }}>
@@ -525,7 +525,7 @@ Always end with a question to keep the conversation going.`
               { q: 'Will the AI actually sound like me?', a: 'Yes — that’s the whole point. During setup we capture how you talk, your tone, your phrases, even the things you’d never say. Every reply comes out in your voice, not a generic chatbot voice. Most people can’t tell it isn’t you.' },
               { q: 'What if it says something wrong?', a: 'The AI is trained on your rules and your offer, and it’s built to stay in its lane. For anything sensitive — exact pricing, guarantees, edge cases — it warmly redirects and captures the lead instead of guessing. You can also jump into any conversation from your dashboard and take over at any time.' },
               { q: 'How much does it cost?', a: 'We tailor pricing to your business rather than forcing you into a fixed plan. There’s a one-time setup and a monthly fee, both scoped on a quick call once we understand what you need and the value it brings. No long contracts — cancel anytime, and the setup fee is refundable within the first 14 days if it’s not the right fit.' },
-              { q: 'How fast can I go live?', a: 'We have your AI trained and replying within 48 hours of signing up. Setup is a few quick questions and a one-click Instagram connection.' },
+              { q: 'How fast can I go live?', a: 'We have your AI trained and replying within 24 hours of signing up. Setup is a few quick questions and a one-click Instagram connection.' },
               { q: 'Is my data safe? Do you need my password?', a: 'No password sharing, ever. We connect through Meta’s official Instagram API, the same secure standard the big tools use. Your data is encrypted, never sold, and only used to power your replies.' },
               { q: 'What happens with complex questions or unhappy customers?', a: 'The AI acknowledges, stays calm, and never gets defensive. When something needs a human, it’s flagged in your dashboard so nothing falls through — and you can step in and reply yourself whenever you want.' },
               { q: 'Can I cancel anytime?', a: 'Yes. It’s month-to-month with no lock-in. Cancel whenever you like — and within the first 14 days, the setup fee is refundable too.' },
@@ -570,7 +570,7 @@ Always end with a question to keep the conversation going.`
               { title: 'Your brand, our technology', desc: 'Full white-label — your logo, domain, and colours on everything your clients see.' },
               { title: 'Scalable seat pricing', desc: 'Pay per client slot. Start with 10, grow to unlimited. No upfront commitment.' },
               { title: 'You keep the margin', desc: 'Charge your clients whatever you want. We charge you a flat platform fee.' },
-              { title: 'Onboarded in 48 hours', desc: "We handle setup. You focus on signing clients. We&apos;ll have everything live fast." },
+              { title: 'Onboarded in 24 hours', desc: "We handle setup. You focus on signing clients. We&apos;ll have everything live fast." },
             ].map(item => (
               <div key={item.title} style={{ padding: '1.5rem', border: '1px solid #1a1a1a', borderRadius: '12px', transition: 'border-color 0.2s' }}>
                 <h3 style={{ color: '#fff', fontSize: '0.95rem', fontWeight: '400', marginBottom: '0.5rem' }}>{item.title}</h3>
@@ -589,7 +589,7 @@ Always end with a question to keep the conversation going.`
             Ready to automate your Instagram?
           </h2>
           <p style={{ color: '#888', fontSize: '1rem', lineHeight: '1.75', marginBottom: '3rem' }}>
-            We&apos;ll have your AI live and replying within 48 hours of signing up.
+            We&apos;ll have your AI live and replying within 24 hours of signing up.
           </p>
           <a href="mailto:ethanvonl@icloud.com" style={{ display: 'inline-block', padding: '1.25rem 3.5rem', borderRadius: '8px', background: '#111', color: '#fff', textDecoration: 'none', fontSize: '0.75rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Contact Us →

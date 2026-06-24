@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 import DailyMessage from '@/components/DailyMessage'
+import NotificationBell from '@/components/NotificationBell'
 import { c, font, radius, card, label, muted, statNumber, btn, input as inputStyle } from '@/lib/theme'
 
 interface Message {
@@ -189,9 +190,12 @@ export default function Dashboard() {
               {getGreeting()}{clientName ? `, ${clientName}` : ''}
             </h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: c.surface, border: `1px solid ${c.border}`, borderRadius: radius.pill, padding: '0.4rem 0.8rem' }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', animation: 'walterpulse 1.6s ease-in-out infinite' }} />
-            <span style={{ fontSize: '0.8rem', color: c.body, fontWeight: 500 }}>Walter is live</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: c.surface, border: `1px solid ${c.border}`, borderRadius: radius.pill, padding: '0.4rem 0.8rem' }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', animation: 'walterpulse 1.6s ease-in-out infinite' }} />
+              <span style={{ fontSize: '0.8rem', color: c.body, fontWeight: 500 }}>Walter is live</span>
+            </div>
+            <NotificationBell />
           </div>
         </div>
 

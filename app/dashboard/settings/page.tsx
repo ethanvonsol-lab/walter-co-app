@@ -22,19 +22,26 @@ export default function SettingsPage() {
   const [profileSaved, setProfileSaved] = useState(false)
   const [profileError, setProfileError] = useState('')
 
+  // Discord integration — per-client incoming webhook for lead alerts.
+  const [discordUrl, setDiscordUrl] = useState('')
+  const [discordSaving, setDiscordSaving] = useState(false)
+  const [discordSaved, setDiscordSaved] = useState(false)
+  const [discordTest, setDiscordTest] = useState<'' | 'sending' | 'ok' | 'fail'>('')
+
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setProfileLoaded(true); return }
       const { data } = await supabase
         .from('clients')
-        .select('name, industry, avg_deal_value')
+        .select('name, industry, avg_deal_value, discord_webhook_url')
         .eq('email', user.email)
         .maybeSingle()
       if (data) {
         setName(data.name || '')
         setIndustry(data.industry || '')
         setAvgDealValue(data.avg_deal_value ? String(data.avg_deal_value) : '')
+        setDiscordUrl(data.discord_webhook_url || '')
       }
       setProfileLoaded(true)
     }
@@ -61,6 +68,33 @@ export default function SettingsPage() {
       setProfileSaved(true)
       setTimeout(() => setProfileSaved(false), 2000)
     }
+  }
+
+  const handleSaveDiscord = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    setDiscordSaving(true)
+    await supabase.from('clients').update({ discord_webhook_url: discordUrl.trim() || null }).eq('email', user.email)
+    setDiscordSaving(false)
+    setDiscordSaved(true)
+    setTimeout(() => setDiscordSaved(false), 2000)
+  }
+
+  const handleTestDiscord = async () => {
+    if (!discordUrl.trim()) return
+    setDiscordTest('sending')
+    try {
+      const res = await fetch('/api/discord/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl: discordUrl.trim() }),
+      })
+      const data = await res.json()
+      setDiscordTest(data.ok ? 'ok' : 'fail')
+    } catch {
+      setDiscordTest('fail')
+    }
+    setTimeout(() => setDiscordTest(''), 3000)
   }
 
   const handleSave = async () => {
@@ -216,6 +250,40 @@ export default function SettingsPage() {
           >
             {saved ? 'Saved ✓' : 'Save settings'}
           </button>
+
+          {/* Integrations — Discord */}
+          <div style={card}>
+            <p style={themeLabel}>Discord alerts</p>
+            <p style={{ ...muted, marginTop: '0.3rem', marginBottom: '1.1rem' }}>Get a ping in your Discord the moment the AI captures a lead. Paste an incoming-webhook URL from your server (Server Settings → Integrations → Webhooks).</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <input
+                type="url"
+                value={discordUrl}
+                onChange={e => setDiscordUrl(e.target.value)}
+                placeholder="https://discord.com/api/webhooks/…"
+                disabled={!profileLoaded}
+                style={themeInput}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <button
+                  onClick={handleSaveDiscord}
+                  disabled={!profileLoaded || discordSaving}
+                  style={{ ...btn, background: discordSaved ? c.good : c.ink, borderColor: discordSaved ? c.good : c.ink, opacity: !profileLoaded || discordSaving ? 0.5 : 1 }}
+                >
+                  {discordSaved ? 'Saved ✓' : discordSaving ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  onClick={handleTestDiscord}
+                  disabled={!discordUrl.trim() || discordTest === 'sending'}
+                  style={{ padding: '0.5rem 1.1rem', borderRadius: radius.md, border: `1px solid ${c.border}`, background: c.surface, color: c.muted, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 500, fontFamily: font, opacity: !discordUrl.trim() ? 0.5 : 1 }}
+                >
+                  {discordTest === 'sending' ? 'Sending…' : 'Send test'}
+                </button>
+                {discordTest === 'ok' && <span style={{ color: c.good, fontSize: '0.8rem' }}>Sent — check Discord ✓</span>}
+                {discordTest === 'fail' && <span style={{ color: c.bad, fontSize: '0.8rem' }}>Couldn&apos;t send — check the URL</span>}
+              </div>
+            </div>
+          </div>
 
           {/* Feedback */}
           <FeedbackForm />

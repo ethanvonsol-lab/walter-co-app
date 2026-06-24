@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseServer as supabase } from '@/lib/supabase-server'
 import { buildSalesSystemPrompt } from '@/lib/sales-prompt'
+import { sendDiscord } from '@/lib/discord'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -188,15 +189,37 @@ export async function POST(req: NextRequest) {
       .single()
 
     if ((isLead || detectedEmail) && savedMessage) {
-      await supabase.from('leads').insert({
+      const { data: savedLead } = await supabase
+        .from('leads')
+        .insert({
+          client_id: clientData.id,
+          message_id: savedMessage.id,
+          from_username: senderId,
+          intent_summary: detectedEmail
+            ? `User provided email: ${detectedEmail}. Message: "${messageText}"`
+            : `User asked: "${messageText}"`,
+          status: 'new',
+        })
+        .select()
+        .single()
+
+      // Real-time dashboard notification (2.5) — defensive: a missing
+      // notifications table just means no bell yet, never break the reply.
+      await supabase.from('notifications').insert({
         client_id: clientData.id,
-        message_id: savedMessage.id,
-        from_username: senderId,
-        intent_summary: detectedEmail
-          ? `User provided email: ${detectedEmail}. Message: "${messageText}"`
-          : `User asked: "${messageText}"`,
-        status: 'new',
+        type: 'lead',
+        title: `🔥 New lead from @${senderId}`,
+        body: messageText.slice(0, 140),
+        lead_id: savedLead?.id ?? null,
       })
+
+      // Discord alert (2.6) — only if the client connected a webhook.
+      if (clientData.discord_webhook_url) {
+        await sendDiscord(
+          clientData.discord_webhook_url,
+          `🔥 **New lead** for ${clientData.name || 'your account'}\n@${senderId}: "${messageText.slice(0, 200)}"`,
+        )
+      }
     }
 
     if (aiEnabled) {
