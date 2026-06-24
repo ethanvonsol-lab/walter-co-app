@@ -11,6 +11,11 @@ interface Lead {
   intent_summary: string
   status: string
   created_at: string
+  budget_range?: string | null
+  timeline?: string | null
+  pain_point?: string | null
+  decision_maker?: string | null
+  enriched_at?: string | null
 }
 
 // Fallback $ value per lead at full intent when the client hasn't set their own.
@@ -42,6 +47,7 @@ export default function LeadsPage() {
   const [selected, setSelected] = useState<Lead | null>(null)
   const [sortMode, setSortMode] = useState<'hot' | 'recent'>('hot')
   const [avgDealValue, setAvgDealValue] = useState(DEFAULT_DEAL_VALUE)
+  const [enrichingId, setEnrichingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -81,6 +87,36 @@ export default function LeadsPage() {
     setLeads(leads.map(l => l.id === id ? { ...l, status } : l))
     if (selected?.id === id) setSelected({ ...selected, status })
   }
+
+  // Ask the AI to read this lead's conversation and pull a qualification
+  // profile (budget / timeline / pain / decision-maker). Cached via enriched_at.
+  const runEnrich = async (lead: Lead) => {
+    setEnrichingId(lead.id)
+    try {
+      const res = await fetch('/api/leads/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id }),
+      })
+      const { profile } = await res.json()
+      if (profile) {
+        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ...profile, enriched_at: new Date().toISOString() } : l))
+      }
+    } catch {
+      // leave un-enriched; the user can retry from the card
+    }
+    setEnrichingId(null)
+  }
+
+  // Auto-profile a lead the first time it's opened. Fetch-on-select is a valid
+  // effect; the setState inside runEnrich just toggles the "analyzing" state.
+  useEffect(() => {
+    if (selected && !selected.enriched_at && enrichingId !== selected.id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      runEnrich(selected)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected])
 
   const timeAgo = (date: string) => {
     // eslint-disable-next-line react-hooks/purity -- relative timestamp, fine to recompute on render
@@ -233,6 +269,42 @@ export default function LeadsPage() {
                   <span style={{ display: 'block', marginTop: '0.85rem', fontSize: '2.25rem', fontWeight: 600, color: '#fff', lineHeight: 1, letterSpacing: '-0.03em', ...tabular }}>${selectedScored.value.toLocaleString()}</span>
                   <p style={{ color: '#a1a1aa', fontSize: '0.72rem', marginTop: '0.6rem' }}>intent × avg deal size</p>
                 </div>
+              </div>
+
+              {/* AI-extracted qualification profile */}
+              <div style={{ ...card, marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <p style={label}>Lead Profile</p>
+                  {enrichingId === selectedScored.id ? (
+                    <span style={{ fontSize: '0.68rem', color: c.faint }}>analyzing…</span>
+                  ) : (
+                    <button
+                      onClick={() => runEnrich(selectedScored)}
+                      style={{ fontSize: '0.68rem', color: c.faint, background: 'none', border: 'none', cursor: 'pointer', fontFamily: font }}
+                    >
+                      {selectedScored.enriched_at ? '↻ refresh' : 'AI-extracted'}
+                    </button>
+                  )}
+                </div>
+                {enrichingId === selectedScored.id && !selectedScored.enriched_at ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                    {[78, 64, 82, 56].map((w, i) => (
+                      <div key={i} style={{ height: '12px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f1,#e7e7e9,#f0f0f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem 1.25rem' }}>
+                    {([['Budget', selectedScored.budget_range], ['Timeline', selectedScored.timeline], ['Pain point', selectedScored.pain_point], ['Decision-maker', selectedScored.decision_maker]] as const).map(([k, v]) => {
+                      const known = !!v && v !== 'Unknown'
+                      return (
+                        <div key={k}>
+                          <p style={{ ...label, fontSize: '0.64rem', marginBottom: '0.3rem' }}>{k}</p>
+                          <p style={{ fontSize: '0.9rem', color: known ? c.ink : c.faint, fontWeight: known ? 500 : 400 }}>{known ? v : '—'}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
               <div style={card}>
