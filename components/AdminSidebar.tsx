@@ -11,6 +11,7 @@ const navItems = [
   { label: 'Revenue', href: '/admin/revenue' },
   { label: 'Feedback', href: '/admin/feedback' },
   { label: 'Daily Note', href: '/admin/daily' },
+  { label: 'Demo', href: '/admin/demo' },
   { label: 'Health', href: '/admin/health' },
   { label: 'Audit Log', href: '/admin/audit' },
 ]
