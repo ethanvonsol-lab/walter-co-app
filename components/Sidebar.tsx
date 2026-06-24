@@ -112,6 +112,9 @@ export default function Sidebar({ active }: SidebarProps) {
             </p>
           </div>
         </div>
+        <p style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: c.faint, fontSize: '0.68rem', marginTop: '0.85rem', paddingLeft: '0.4rem' }}>
+          <span>🔒</span> Encrypted &amp; secure
+        </p>
       </div>
     </aside>
   )

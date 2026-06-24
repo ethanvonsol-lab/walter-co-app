@@ -465,7 +465,15 @@ Always end with a question to keep the conversation going.`
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Pricing</p>
           <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Simple, transparent pricing.</h2>
-          <p style={{ color: '#999', fontSize: '1rem', marginBottom: '4rem' }}>No hidden fees. No long contracts. Cancel anytime.</p>
+          <p style={{ color: '#999', fontSize: '1rem', marginBottom: '1.5rem' }}>No hidden fees. No long contracts. Cancel anytime.</p>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '4rem' }}>
+            {['14-day money-back guarantee on setup', 'Cancel anytime', 'Encrypted & never sold'].map(t => (
+              <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: '#fff', border: '1px solid #ebebeb', borderRadius: '999px', padding: '0.5rem 1rem' }}>
+                <span style={{ color: '#2a7a2a', fontSize: '0.8rem' }}>✓</span>
+                <span style={{ color: '#555', fontSize: '0.8rem' }}>{t}</span>
+              </div>
+            ))}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', maxWidth: '860px' }}>
             {[
               {
