@@ -75,7 +75,7 @@ export default function HomePage() {
 Your tone: confident, friendly, direct. You speak casually like a real person texting — not corporate, not salesy. You believe in what you sell because it genuinely works.
 
 When someone asks about the product: explain it simply and get them interested without overwhelming them.
-When someone asks about pricing: mention it starts at $500/month with a $350 setup fee, then ask what kind of business they run.
+When someone asks about pricing: explain that pricing is custom — you scope it to their business on a quick call rather than a fixed plan — then ask what kind of business they run so you can point them in the right direction.
 When someone asks how it works: keep it simple — "we train an AI on your voice and it handles your DMs 24/7"
 Your goal: qualify them and get them on a call or to send an email to ethanvonl@icloud.com
 Always end with a question to keep the conversation going.`
@@ -397,7 +397,7 @@ Always end with a question to keep the conversation going.`
               </div>
             </div>
             {[
-              { feature: 'Monthly cost', human: '$3,000–5,000 salary', walter: '$500 flat' },
+              { feature: 'Monthly cost', human: '$3,000–5,000 salary', walter: 'A fraction of a hire' },
               { feature: 'Availability', human: 'One shift, sick days, holidays', walter: '24/7/365, never off' },
               { feature: 'Response time', human: 'Minutes to hours', walter: 'Under 3 seconds' },
               { feature: 'Sounds like you', human: 'Months to learn your voice', walter: 'Trained on your voice day one' },
@@ -464,8 +464,8 @@ Always end with a question to keep the conversation going.`
       <section id="pricing" style={{ padding: '8rem 4rem', background: '#f7f7f5' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <p style={{ color: '#bbb', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Pricing</p>
-          <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Simple, transparent pricing.</h2>
-          <p style={{ color: '#999', fontSize: '1rem', marginBottom: '1.5rem' }}>No hidden fees. No long contracts. Cancel anytime.</p>
+          <h2 style={{ fontSize: '3rem', fontWeight: '300', marginBottom: '1rem' }}>Pricing that fits your business.</h2>
+          <p style={{ color: '#999', fontSize: '1rem', marginBottom: '1.5rem', maxWidth: '560px', lineHeight: '1.6' }}>Every business is different, so we don&apos;t force you into a one-size-fits-all plan. We learn how you work on a quick call, then send a custom quote built around the value it brings you.</p>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '4rem' }}>
             {['14-day money-back guarantee on setup', 'Cancel anytime', 'Encrypted & never sold'].map(t => (
               <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: '#fff', border: '1px solid #ebebeb', borderRadius: '999px', padding: '0.5rem 1rem' }}>
@@ -477,25 +477,24 @@ Always end with a question to keep the conversation going.`
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', maxWidth: '860px' }}>
             {[
               {
-                name: 'Standard', setup: 'USD $350', monthly: '$500', period: '/month',
+                name: 'Standard', tagline: 'Scoped to your business on a quick call',
                 desc: 'For individual businesses and creators',
                 features: ['1 Instagram account', 'AI reply automation', 'Lead capture & detection', 'Analytics dashboard', 'Voice profile training', 'Monthly reporting'],
-                cta: 'Get Started', highlight: false,
+                cta: 'Book a call', highlight: false,
               },
               {
-                name: 'Agency', setup: 'From USD $500', monthly: 'From $1,000', period: '/month',
+                name: 'Agency', tagline: 'Volume pricing, scoped on a call',
                 desc: 'White-label for agencies with multiple clients',
                 features: ['Multiple client accounts', 'White-label dashboard', 'Your own branding & domain', 'Agency-wide analytics', 'Priority support', 'Custom onboarding'],
-                cta: 'Contact Us', highlight: true,
+                cta: 'Book a call', highlight: true,
               },
             ].map(plan => (
               <div key={plan.name} style={{ background: plan.highlight ? '#111' : '#fff', border: `1px solid ${plan.highlight ? '#111' : '#ebebeb'}`, borderRadius: '20px', padding: '2.5rem', boxShadow: plan.highlight ? '0 20px 60px rgba(0,0,0,0.15)' : '0 2px 20px rgba(0,0,0,0.04)' }}>
                 <p style={{ color: plan.highlight ? '#555' : '#bbb', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>{plan.name}</p>
-                <p style={{ color: plan.highlight ? '#555' : '#bbb', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Setup {plan.setup}</p>
-                <div style={{ marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '3rem', fontWeight: '300', color: plan.highlight ? '#fff' : '#111' }}>{plan.monthly}</span>
-                  <span style={{ color: plan.highlight ? '#555' : '#bbb', fontSize: '0.85rem' }}>{plan.period}</span>
+                <div style={{ marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '2.5rem', fontWeight: '300', color: plan.highlight ? '#fff' : '#111' }}>Custom</span>
                 </div>
+                <p style={{ color: plan.highlight ? '#888' : '#aaa', fontSize: '0.8rem', marginBottom: '0.5rem' }}>{plan.tagline}</p>
                 <p style={{ color: plan.highlight ? '#555' : '#999', fontSize: '0.82rem', marginBottom: '2rem', lineHeight: '1.5' }}>{plan.desc}</p>
                 <div style={{ marginBottom: '2rem' }}>
                   {plan.features.map(f => (
@@ -525,7 +524,7 @@ Always end with a question to keep the conversation going.`
             {[
               { q: 'Will the AI actually sound like me?', a: 'Yes — that’s the whole point. During setup we capture how you talk, your tone, your phrases, even the things you’d never say. Every reply comes out in your voice, not a generic chatbot voice. Most people can’t tell it isn’t you.' },
               { q: 'What if it says something wrong?', a: 'The AI is trained on your rules and your offer, and it’s built to stay in its lane. For anything sensitive — exact pricing, guarantees, edge cases — it warmly redirects and captures the lead instead of guessing. You can also jump into any conversation from your dashboard and take over at any time.' },
-              { q: 'How much does it cost?', a: 'USD $500/month plus a one-time $350 setup fee. No long contracts — cancel anytime. The setup fee is refundable within the first 14 days if it’s not the right fit.' },
+              { q: 'How much does it cost?', a: 'We tailor pricing to your business rather than forcing you into a fixed plan. There’s a one-time setup and a monthly fee, both scoped on a quick call once we understand what you need and the value it brings. No long contracts — cancel anytime, and the setup fee is refundable within the first 14 days if it’s not the right fit.' },
               { q: 'How fast can I go live?', a: 'We have your AI trained and replying within 48 hours of signing up. Setup is a few quick questions and a one-click Instagram connection.' },
               { q: 'Is my data safe? Do you need my password?', a: 'No password sharing, ever. We connect through Meta’s official Instagram API, the same secure standard the big tools use. Your data is encrypted, never sold, and only used to power your replies.' },
               { q: 'What happens with complex questions or unhappy customers?', a: 'The AI acknowledges, stays calm, and never gets defensive. When something needs a human, it’s flagged in your dashboard so nothing falls through — and you can step in and reply yourself whenever you want.' },
