@@ -5,7 +5,49 @@ import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 import DailyMessage from '@/components/DailyMessage'
 import NotificationBell from '@/components/NotificationBell'
-import { c, font, radius, card, label, muted, statNumber, btn, input as inputStyle } from '@/lib/theme'
+import { c, font, radius, card, label, muted, statNumber, btn, tabular, input as inputStyle } from '@/lib/theme'
+
+// Small KPI building blocks for the refined, all-white dashboard.
+function Sparkline({ data, color = c.ink, width = 64, height = 22 }: { data: number[]; color?: string; width?: number; height?: number }) {
+  const max = Math.max(...data, 1)
+  const pts = data.map((v, i) => {
+    const x = (i / Math.max(data.length - 1, 1)) * width
+    const y = height - (v / max) * (height - 4) - 2
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function Delta({ pct }: { pct: number }) {
+  const flat = pct === 0
+  const up = pct > 0
+  const color = flat ? c.faint : up ? c.good : c.bad
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.74rem', fontWeight: 500, color, ...tabular }}>
+      {flat ? '—' : up ? '↑' : '↓'} {Math.abs(pct)}% <span style={{ color: c.faint, fontWeight: 400 }}>7d</span>
+    </span>
+  )
+}
+
+function KpiCard({ label: lbl, value, delta, sub, spark }: { label: string; value: string | number; delta?: number; sub?: string; spark?: number[] }) {
+  return (
+    <div style={card}>
+      <p style={{ ...label, marginBottom: '0.85rem' }}>{lbl}</p>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '0.5rem' }}>
+        <p style={statNumber}>{value}</p>
+        {spark && <Sparkline data={spark} />}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.6rem' }}>
+        {sub ? <p style={{ color: c.faint, fontSize: '0.78rem' }}>{sub}</p> : <span />}
+        {delta !== undefined && <Delta pct={delta} />}
+      </div>
+    </div>
+  )
+}
 
 interface Message {
   id: string
@@ -32,6 +74,9 @@ export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>([])
   const [stats, setStats] = useState({ total: 0, leads: 0, escalated: 0, today: 0, todayLeads: 0 })
   const [chartData, setChartData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0])
+  const [series, setSeries] = useState<number[]>(Array(14).fill(0))
+  const [leadSeries, setLeadSeries] = useState<number[]>(Array(14).fill(0))
+  const [week, setWeek] = useState({ msgs: 0, leads: 0, dMsgs: 0, dLeads: 0, conv: 0, dConv: 0 })
   const [testMessage, setTestMessage] = useState('')
   const [testReply, setTestReply] = useState('')
   const [loading, setLoading] = useState(false)
@@ -86,6 +131,26 @@ export default function Dashboard() {
           if (daysAgo < 7) days[6 - daysAgo]++
         })
         setChartData(days)
+
+        // 14-day series for sparklines + week-over-week deltas.
+        const s = Array(14).fill(0)
+        const ls = Array(14).fill(0)
+        msgs.forEach(m => {
+          const daysAgo = Math.floor((now.getTime() - new Date(m.created_at).getTime()) / 86400000)
+          if (daysAgo < 14) {
+            s[13 - daysAgo]++
+            if (m.is_lead) ls[13 - daysAgo]++
+          }
+        })
+        setSeries(s)
+        setLeadSeries(ls)
+        const sum = (a: number[]) => a.reduce((x, y) => x + y, 0)
+        const m7 = sum(s.slice(7)), mPrev = sum(s.slice(0, 7))
+        const l7 = sum(ls.slice(7)), lPrev = sum(ls.slice(0, 7))
+        const pctd = (cur: number, prev: number) => prev > 0 ? Math.round(((cur - prev) / prev) * 100) : (cur > 0 ? 100 : 0)
+        const conv = m7 > 0 ? Math.round((l7 / m7) * 100) : 0
+        const convPrev = mPrev > 0 ? Math.round((lPrev / mPrev) * 100) : 0
+        setWeek({ msgs: m7, leads: l7, dMsgs: pctd(m7, mPrev), dLeads: pctd(l7, lPrev), conv, dConv: pctd(conv, convPrev) })
       }
 
       // Walter Intelligence — AI-written briefing + intent-ranked leads.
@@ -145,15 +210,6 @@ export default function Dashboard() {
   }
 
   const maxChart = Math.max(...chartData, 1)
-
-  // Sparkline points for the "replies today" trend.
-  const sparkPoints = chartData
-    .map((v, i) => {
-      const x = (i / (chartData.length - 1)) * 60
-      const y = 24 - (v / maxChart) * 22
-      return `${x.toFixed(1)},${y.toFixed(1)}`
-    })
-    .join(' ')
 
   const pipelineValue = Math.round(
     briefingLeads.reduce((sum, l) => sum + (l.score / 100) * avgDealValue, 0)
@@ -274,30 +330,12 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.1fr', gap: '1rem', marginBottom: '1rem' }}>
-          <div style={card}>
-            <p style={{ ...label, marginBottom: '0.85rem' }}>Replies Today</p>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              <p style={statNumber}>{stats.today}</p>
-              <svg width="72" height="30" viewBox="0 0 60 26" style={{ overflow: 'visible' }}>
-                <polyline points={sparkPoints} fill="none" stroke={c.ink} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-              </svg>
-            </div>
-            <p style={{ color: c.faint, fontSize: '0.78rem', marginTop: '0.5rem' }}>{stats.total} all time</p>
-          </div>
-          <div style={card}>
-            <p style={{ ...label, marginBottom: '0.85rem' }}>Leads Captured</p>
-            <p style={{ ...statNumber, marginBottom: '0.4rem' }}>{stats.todayLeads}</p>
-            <p style={{ color: c.faint, fontSize: '0.78rem' }}>{stats.leads} all time · {stats.escalated} escalated</p>
-          </div>
-          <div style={{ background: c.ink, borderRadius: radius.lg, padding: '1.5rem' }}>
-            <p style={{ ...label, color: '#a1a1aa', marginBottom: '0.85rem' }}>Pipeline Value</p>
-            <p style={{ ...statNumber, color: '#fff', marginBottom: '0.4rem' }}>${pipelineValue.toLocaleString()}</p>
-            <p style={{ color: '#a1a1aa', fontSize: '0.78rem' }}>
-              {briefingLoading ? 'estimating…' : `est. from ${briefingLeads.length} hot lead${briefingLeads.length === 1 ? '' : 's'}`}
-            </p>
-          </div>
+        {/* KPIs — all-white, each with a 14-day sparkline + week-over-week delta */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+          <KpiCard label="Replies · 7d" value={week.msgs} delta={week.dMsgs} spark={series} sub={`${stats.total} all time`} />
+          <KpiCard label="Leads · 7d" value={week.leads} delta={week.dLeads} spark={leadSeries} sub={`${stats.leads} all time`} />
+          <KpiCard label="Conversion" value={`${week.conv}%`} delta={week.dConv} sub="leads ÷ replies" />
+          <KpiCard label="Pipeline value" value={`$${pipelineValue.toLocaleString()}`} spark={leadSeries} sub={briefingLoading ? 'estimating…' : `${briefingLeads.length} open lead${briefingLeads.length === 1 ? '' : 's'}`} />
         </div>
 
         {/* Chart + Funnel */}
