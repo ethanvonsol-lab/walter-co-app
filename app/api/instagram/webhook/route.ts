@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseServer as supabase } from '@/lib/supabase-server'
 import { buildSalesSystemPrompt } from '@/lib/sales-prompt'
 import { sendDiscord } from '@/lib/discord'
+import { generateVoiceReply } from '@/lib/voice-memo'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -25,6 +26,25 @@ async function sendInstagramReply(recipientId: string, message: string, accessTo
   )
   const data = await response.json()
   return data
+}
+
+// Send an audio (voice memo) reply — used when the client has voice replies on.
+async function sendInstagramAudio(recipientId: string, audioUrl: string, accessToken: string) {
+  const response = await fetch(
+    `https://graph.instagram.com/v21.0/me/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        message: { attachment: { type: 'audio', payload: { url: audioUrl } } }
+      })
+    }
+  )
+  return response.json()
 }
 
 export async function GET(req: NextRequest) {
@@ -223,7 +243,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (aiEnabled) {
-      await sendInstagramReply(senderId, aiReply, accessToken)
+      // Voice memo (dormant unless ELEVENLABS_API_KEY + the client opts in).
+      // Falls back to text if generation fails or it's off. See lib/voice-memo.ts.
+      let sentVoice = false
+      if (clientData.voice_replies_enabled && clientData.elevenlabs_voice_id) {
+        const audioUrl = await generateVoiceReply(aiReply, clientData.elevenlabs_voice_id)
+        if (audioUrl) {
+          await sendInstagramAudio(senderId, audioUrl, accessToken)
+          sentVoice = true
+        }
+      }
+      if (!sentVoice) await sendInstagramReply(senderId, aiReply, accessToken)
     }
     return NextResponse.json({ status: aiEnabled ? 'ok' : 'manual', reply: aiReply })
 

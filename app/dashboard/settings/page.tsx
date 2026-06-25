@@ -28,13 +28,19 @@ export default function SettingsPage() {
   const [discordSaved, setDiscordSaved] = useState(false)
   const [discordTest, setDiscordTest] = useState<'' | 'sending' | 'ok' | 'fail'>('')
 
+  // Voice replies (beta, dormant until ElevenLabs is configured).
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
+  const [voiceId, setVoiceId] = useState('')
+  const [voiceSaving, setVoiceSaving] = useState(false)
+  const [voiceSaved, setVoiceSaved] = useState(false)
+
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setProfileLoaded(true); return }
       const { data } = await supabase
         .from('clients')
-        .select('name, industry, avg_deal_value, discord_webhook_url')
+        .select('name, industry, avg_deal_value, discord_webhook_url, voice_replies_enabled, elevenlabs_voice_id')
         .eq('email', user.email)
         .maybeSingle()
       if (data) {
@@ -42,6 +48,8 @@ export default function SettingsPage() {
         setIndustry(data.industry || '')
         setAvgDealValue(data.avg_deal_value ? String(data.avg_deal_value) : '')
         setDiscordUrl(data.discord_webhook_url || '')
+        setVoiceEnabled(!!data.voice_replies_enabled)
+        setVoiceId(data.elevenlabs_voice_id || '')
       }
       setProfileLoaded(true)
     }
@@ -95,6 +103,19 @@ export default function SettingsPage() {
       setDiscordTest('fail')
     }
     setTimeout(() => setDiscordTest(''), 3000)
+  }
+
+  const handleSaveVoice = async (nextEnabled: boolean, nextVoiceId: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    setVoiceSaving(true)
+    await supabase.from('clients').update({
+      voice_replies_enabled: nextEnabled,
+      elevenlabs_voice_id: nextVoiceId.trim() || null,
+    }).eq('email', user.email)
+    setVoiceSaving(false)
+    setVoiceSaved(true)
+    setTimeout(() => setVoiceSaved(false), 2000)
   }
 
   const handleSave = async () => {
@@ -283,6 +304,38 @@ export default function SettingsPage() {
                 {discordTest === 'fail' && <span style={{ color: c.bad, fontSize: '0.8rem' }}>Couldn&apos;t send — check the URL</span>}
               </div>
             </div>
+          </div>
+
+          {/* Voice replies (beta) */}
+          <div style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+              <div>
+                <p style={themeLabel}>Voice replies <span style={{ color: c.warn, background: c.warnBg, border: `1px solid ${c.warnBorder}`, padding: '0.05rem 0.4rem', borderRadius: radius.sm, fontSize: '0.6rem', marginLeft: '0.3rem' }}>BETA</span></p>
+                <p style={{ ...muted, marginTop: '0.3rem' }}>Reply with an audio voice memo instead of text, in your cloned voice. Requires team setup before it goes live.</p>
+              </div>
+              <button
+                onClick={() => { const next = !voiceEnabled; setVoiceEnabled(next); handleSaveVoice(next, voiceId) }}
+                disabled={!profileLoaded || voiceSaving}
+                style={{ width: '44px', height: '24px', borderRadius: '13px', border: 'none', background: voiceEnabled ? c.ink : '#d4d4d8', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+              >
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: voiceEnabled ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+              </button>
+            </div>
+            {voiceEnabled && (
+              <div style={{ marginTop: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <input
+                  type="text"
+                  value={voiceId}
+                  onChange={e => setVoiceId(e.target.value)}
+                  onBlur={() => handleSaveVoice(voiceEnabled, voiceId)}
+                  placeholder="ElevenLabs voice ID"
+                  style={themeInput}
+                />
+                <p style={{ color: c.faint, fontSize: '0.74rem' }}>
+                  {voiceSaved ? 'Saved ✓ — ' : ''}Dormant until an ElevenLabs key is configured for your account. Until then, replies stay as text.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Feedback */}
