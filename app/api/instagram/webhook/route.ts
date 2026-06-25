@@ -1,9 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseServer as supabase } from '@/lib/supabase-server'
 import { buildSalesSystemPrompt } from '@/lib/sales-prompt'
 import { sendDiscord } from '@/lib/discord'
 import { generateVoiceReply } from '@/lib/voice-memo'
+
+// Allow the function to stay alive long enough to honour a reply delay (the
+// reply is sent from an after() callback once the delay elapses). Capped at 60s.
+export const maxDuration = 60
+const MAX_DELAY_SECONDS = 45
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -243,17 +248,32 @@ export async function POST(req: NextRequest) {
     }
 
     if (aiEnabled) {
-      // Voice memo (dormant unless ELEVENLABS_API_KEY + the client opts in).
-      // Falls back to text if generation fails or it's off. See lib/voice-memo.ts.
-      let sentVoice = false
-      if (clientData.voice_replies_enabled && clientData.elevenlabs_voice_id) {
-        const audioUrl = await generateVoiceReply(aiReply, clientData.elevenlabs_voice_id)
-        if (audioUrl) {
-          await sendInstagramAudio(senderId, audioUrl, accessToken)
-          sentVoice = true
+      // Deliver the reply: voice memo if the client opted in (dormant unless
+      // ELEVENLABS_API_KEY is set), otherwise text. See lib/voice-memo.ts.
+      const deliver = async () => {
+        let sentVoice = false
+        if (clientData.voice_replies_enabled && clientData.elevenlabs_voice_id) {
+          const audioUrl = await generateVoiceReply(aiReply, clientData.elevenlabs_voice_id)
+          if (audioUrl) {
+            await sendInstagramAudio(senderId, audioUrl, accessToken)
+            sentVoice = true
+          }
         }
+        if (!sentVoice) await sendInstagramReply(senderId, aiReply, accessToken)
       }
-      if (!sentVoice) await sendInstagramReply(senderId, aiReply, accessToken)
+
+      // Reply delay: a short wait before sending feels more human. We ack the IG
+      // webhook now and send from an after() callback once the delay elapses, so
+      // Instagram never sees a slow response (and never retries). No cron needed.
+      const delaySeconds = Math.min(Math.max(clientData.reply_delay_seconds || 0, 0), MAX_DELAY_SECONDS)
+      if (delaySeconds > 0) {
+        after(async () => {
+          await new Promise(r => setTimeout(r, delaySeconds * 1000))
+          await deliver()
+        })
+      } else {
+        await deliver()
+      }
     }
     return NextResponse.json({ status: aiEnabled ? 'ok' : 'manual', reply: aiReply })
 

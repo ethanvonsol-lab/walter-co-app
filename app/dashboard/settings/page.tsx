@@ -7,11 +7,9 @@ import FeedbackForm from '@/components/FeedbackForm'
 import { c, font, radius, card, label as themeLabel, input as themeInput, btn, pageTitle, muted } from '@/lib/theme'
 
 export default function SettingsPage() {
-  const [delayType, setDelayType] = useState('minutes')
-  const [replyDelay, setReplyDelay] = useState('5')
-  const [customDelay, setCustomDelay] = useState('')
   const [autoReply, setAutoReply] = useState(true)
-  const [saved, setSaved] = useState(false)
+  const [replyDelaySeconds, setReplyDelaySeconds] = useState(0)
+  const [delaySaved, setDelaySaved] = useState(false)
 
   // Profile (name + industry + avg deal value) — persisted to the clients table.
   const [name, setName] = useState('')
@@ -40,7 +38,7 @@ export default function SettingsPage() {
       if (!user) { setProfileLoaded(true); return }
       const { data } = await supabase
         .from('clients')
-        .select('name, industry, avg_deal_value, discord_webhook_url, voice_replies_enabled, elevenlabs_voice_id')
+        .select('name, industry, avg_deal_value, discord_webhook_url, voice_replies_enabled, elevenlabs_voice_id, reply_delay_seconds')
         .eq('email', user.email)
         .maybeSingle()
       if (data) {
@@ -50,6 +48,7 @@ export default function SettingsPage() {
         setDiscordUrl(data.discord_webhook_url || '')
         setVoiceEnabled(!!data.voice_replies_enabled)
         setVoiceId(data.elevenlabs_voice_id || '')
+        setReplyDelaySeconds(data.reply_delay_seconds ?? 0)
       }
       setProfileLoaded(true)
     }
@@ -118,9 +117,13 @@ export default function SettingsPage() {
     setTimeout(() => setVoiceSaved(false), 2000)
   }
 
-  const handleSave = async () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const saveReplyDelay = async (seconds: number) => {
+    setReplyDelaySeconds(seconds)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('clients').update({ reply_delay_seconds: seconds }).eq('email', user.email)
+    setDelaySaved(true)
+    setTimeout(() => setDelaySaved(false), 2000)
   }
 
   const handleLogout = async () => {
@@ -128,8 +131,6 @@ export default function SettingsPage() {
     window.location.href = '/login'
   }
 
-  const secondsOptions: [string, string][] = [['5', '5 sec'], ['10', '10 sec'], ['15', '15 sec'], ['30', '30 sec']]
-  const minutesOptions: [string, string][] = [['1', '1 min'], ['3', '3 mins'], ['5', '5 mins'], ['10', '10 mins'], ['15', '15 mins']]
 
   const fieldLabel: React.CSSProperties = { ...themeLabel, fontSize: '0.72rem', marginBottom: '0.4rem' }
 
@@ -225,52 +226,17 @@ export default function SettingsPage() {
 
           {/* Reply Delay */}
           <div style={card}>
-            <p style={themeLabel}>Reply Delay</p>
-            <p style={{ ...muted, marginTop: '0.3rem', marginBottom: '1.1rem' }}>How long before the AI replies — feels more human.</p>
-
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-              {['seconds', 'minutes', 'custom'].map(type => (
-                <button key={type} onClick={() => setDelayType(type)} style={{ ...chip(delayType === type), textTransform: 'capitalize' }}>{type}</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <p style={themeLabel}>Reply delay</p>
+              {delaySaved && <span style={{ color: c.good, fontSize: '0.74rem' }}>Saved ✓</span>}
+            </div>
+            <p style={{ ...muted, marginTop: '0.3rem', marginBottom: '1.1rem' }}>How long the AI waits before replying. A short pause feels more human than an instant reply.</p>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {([[0, 'Instant'], [10, '10s'], [20, '20s'], [30, '30s'], [45, '45s']] as const).map(([val, lbl]) => (
+                <button key={val} onClick={() => saveReplyDelay(val)} disabled={!profileLoaded} style={chip(replyDelaySeconds === val)}>{lbl}</button>
               ))}
             </div>
-
-            {delayType === 'seconds' && (
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {secondsOptions.map(([val, lbl]) => (
-                  <button key={val} onClick={() => setReplyDelay(val)} style={chip(replyDelay === val)}>{lbl}</button>
-                ))}
-              </div>
-            )}
-
-            {delayType === 'minutes' && (
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {minutesOptions.map(([val, lbl]) => (
-                  <button key={val} onClick={() => setReplyDelay(val)} style={chip(replyDelay === val)}>{lbl}</button>
-                ))}
-              </div>
-            )}
-
-            {delayType === 'custom' && (
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                <input
-                  type="number"
-                  value={customDelay}
-                  onChange={e => setCustomDelay(e.target.value)}
-                  placeholder="Enter value"
-                  style={{ ...themeInput, width: '120px' }}
-                />
-                <span style={{ ...muted }}>seconds</span>
-              </div>
-            )}
           </div>
-
-          {/* Save */}
-          <button
-            onClick={handleSave}
-            style={{ ...btn, padding: '0.7rem', background: saved ? c.good : c.ink, borderColor: saved ? c.good : c.ink }}
-          >
-            {saved ? 'Saved ✓' : 'Save settings'}
-          </button>
 
           {/* Integrations — Discord */}
           <div style={card}>
