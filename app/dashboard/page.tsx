@@ -7,21 +7,7 @@ import DailyMessage from '@/components/DailyMessage'
 import NotificationBell from '@/components/NotificationBell'
 import { c, font, radius, card, label, muted, statNumber, btn, tabular, input as inputStyle } from '@/lib/theme'
 
-// Small KPI building blocks for the refined, all-white dashboard.
-function Sparkline({ data, color = c.ink, width = 64, height = 22 }: { data: number[]; color?: string; width?: number; height?: number }) {
-  const max = Math.max(...data, 1)
-  const pts = data.map((v, i) => {
-    const x = (i / Math.max(data.length - 1, 1)) * width
-    const y = height - (v / max) * (height - 4) - 2
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }} aria-hidden="true">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  )
-}
-
+// Week-over-week delta chip.
 function Delta({ pct }: { pct: number }) {
   const flat = pct === 0
   const up = pct > 0
@@ -33,19 +19,37 @@ function Delta({ pct }: { pct: number }) {
   )
 }
 
-function KpiCard({ label: lbl, value, delta, sub, spark }: { label: string; value: string | number; delta?: number; sub?: string; spark?: number[] }) {
+// Least-squares projection of the next `steps` days from a daily series.
+function forecastNext(seriesIn: number[], steps: number): number[] {
+  const n = seriesIn.length
+  if (n < 2) return Array(steps).fill(seriesIn[n - 1] || 0)
+  let sx = 0, sy = 0, sxy = 0, sxx = 0
+  seriesIn.forEach((y, x) => { sx += x; sy += y; sxy += x * y; sxx += x * x })
+  const denom = n * sxx - sx * sx
+  const slope = denom !== 0 ? (n * sxy - sx * sy) / denom : 0
+  const intercept = (sy - slope * sx) / n
+  return Array.from({ length: steps }, (_, i) => Math.max(0, intercept + slope * (n + i)))
+}
+
+// Actual (solid + area) vs forecast (dashed) line chart, scaled together.
+function AreaForecast({ actual, forecast, height = 200 }: { actual: number[]; forecast: number[]; height?: number }) {
+  const W = 600, H = height
+  const all = [...actual, ...forecast]
+  const max = Math.max(...all, 1)
+  const n = all.length
+  const px = (i: number) => (i / Math.max(n - 1, 1)) * W
+  const py = (v: number) => H - (v / max) * (H - 16) - 8
+  const line = (vals: number[], offset: number) =>
+    vals.map((v, i) => `${i ? 'L' : 'M'}${px(offset + i).toFixed(1)},${py(v).toFixed(1)}`).join(' ')
+  const actualLine = line(actual, 0)
+  const area = `${actualLine} L${px(actual.length - 1).toFixed(1)},${H} L0,${H} Z`
+  const fcLine = line([actual[actual.length - 1] ?? 0, ...forecast], actual.length - 1)
   return (
-    <div style={card}>
-      <p style={{ ...label, marginBottom: '0.85rem' }}>{lbl}</p>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '0.5rem' }}>
-        <p style={statNumber}>{value}</p>
-        {spark && <Sparkline data={spark} />}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.6rem' }}>
-        {sub ? <p style={{ color: c.faint, fontSize: '0.78rem' }}>{sub}</p> : <span />}
-        {delta !== undefined && <Delta pct={delta} />}
-      </div>
-    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: `${H}px`, display: 'block' }} aria-hidden="true">
+      <path d={area} fill={c.ink} fillOpacity="0.05" />
+      <path d={actualLine} fill="none" stroke={c.ink} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <path d={fcLine} fill="none" stroke={c.faint} strokeWidth="1.5" strokeDasharray="5 4" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
   )
 }
 
@@ -73,9 +77,7 @@ export default function Dashboard() {
   const [avgDealValue, setAvgDealValue] = useState(DEFAULT_DEAL_VALUE)
   const [messages, setMessages] = useState<Message[]>([])
   const [stats, setStats] = useState({ total: 0, leads: 0, escalated: 0, today: 0, todayLeads: 0 })
-  const [chartData, setChartData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0])
-  const [series, setSeries] = useState<number[]>(Array(14).fill(0))
-  const [leadSeries, setLeadSeries] = useState<number[]>(Array(14).fill(0))
+  const [series30, setSeries30] = useState<number[]>(Array(30).fill(0))
   const [week, setWeek] = useState({ msgs: 0, leads: 0, dMsgs: 0, dLeads: 0, conv: 0, dConv: 0 })
   const [testMessage, setTestMessage] = useState('')
   const [testReply, setTestReply] = useState('')
@@ -124,29 +126,22 @@ export default function Dashboard() {
           today: msgs.filter(m => isToday(m.created_at)).length,
           todayLeads: msgs.filter(m => m.is_lead && isToday(m.created_at)).length,
         })
-        const days = Array(7).fill(0)
-        const now = new Date()
-        msgs.forEach(m => {
-          const daysAgo = Math.floor((now.getTime() - new Date(m.created_at).getTime()) / (1000 * 60 * 60 * 24))
-          if (daysAgo < 7) days[6 - daysAgo]++
-        })
-        setChartData(days)
 
-        // 14-day series for sparklines + week-over-week deltas.
-        const s = Array(14).fill(0)
-        const ls = Array(14).fill(0)
+        // 30-day daily series → drives the chart, forecast, and 7d deltas.
+        const now = new Date()
+        const s = Array(30).fill(0)
+        const ls = Array(30).fill(0)
         msgs.forEach(m => {
           const daysAgo = Math.floor((now.getTime() - new Date(m.created_at).getTime()) / 86400000)
-          if (daysAgo < 14) {
-            s[13 - daysAgo]++
-            if (m.is_lead) ls[13 - daysAgo]++
+          if (daysAgo < 30) {
+            s[29 - daysAgo]++
+            if (m.is_lead) ls[29 - daysAgo]++
           }
         })
-        setSeries(s)
-        setLeadSeries(ls)
+        setSeries30(s)
         const sum = (a: number[]) => a.reduce((x, y) => x + y, 0)
-        const m7 = sum(s.slice(7)), mPrev = sum(s.slice(0, 7))
-        const l7 = sum(ls.slice(7)), lPrev = sum(ls.slice(0, 7))
+        const m7 = sum(s.slice(23)), mPrev = sum(s.slice(16, 23))
+        const l7 = sum(ls.slice(23)), lPrev = sum(ls.slice(16, 23))
         const pctd = (cur: number, prev: number) => prev > 0 ? Math.round(((cur - prev) / prev) * 100) : (cur > 0 ? 100 : 0)
         const conv = m7 > 0 ? Math.round((l7 / m7) * 100) : 0
         const convPrev = mPrev > 0 ? Math.round((lPrev / mPrev) * 100) : 0
@@ -203,17 +198,15 @@ export default function Dashboard() {
     return 'Good evening'
   }
 
-  const getDayLabel = (i: number) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
-    return d.toLocaleDateString('en', { weekday: 'short' })
-  }
-
-  const maxChart = Math.max(...chartData, 1)
-
   const pipelineValue = Math.round(
     briefingLeads.reduce((sum, l) => sum + (l.score / 100) * avgDealValue, 0)
   )
+
+  // Forecast: next 14 days for the chart, next 30 for the projection sentence.
+  const fc14 = forecastNext(series30, 14)
+  const projDMs = Math.round(forecastNext(series30, 30).reduce((a, b) => a + b, 0))
+  const projLeads = Math.round(projDMs * (week.conv / 100))
+  const projPipeline = projLeads * avgDealValue
 
   const handleTest = async () => {
     setLoading(true)
@@ -230,6 +223,18 @@ export default function Dashboard() {
     setLoading(false)
   }
 
+  const ledger: { l: string; v: string | number; d?: number; sub?: string }[] = [
+    { l: 'Replies · 7d', v: week.msgs, d: week.dMsgs },
+    { l: 'Leads · 7d', v: week.leads, d: week.dLeads },
+    { l: 'Conversion', v: `${week.conv}%`, d: week.dConv },
+    { l: 'Total DMs', v: stats.total, sub: 'all time' },
+    { l: 'Pipeline', v: `$${pipelineValue.toLocaleString()}`, sub: briefingLoading ? 'estimating…' : `${briefingLeads.length} open` },
+  ]
+
+  const shimmer = (w: number, i: number) => (
+    <div key={i} style={{ height: '13px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f1,#e7e7e9,#f0f0f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />
+  )
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: font, background: c.bg }}>
       <Sidebar active="Dashboard" />
@@ -237,19 +242,20 @@ export default function Dashboard() {
       <main style={{ marginLeft: '244px', flex: 1, padding: '2.25rem 2.5rem', maxWidth: 1180 }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '1.1rem', borderBottom: `1px solid ${c.border}`, marginBottom: '1.25rem' }}>
           <div>
-            <p style={{ ...label, marginBottom: '0.4rem' }}>
-              {new Date().toLocaleDateString('en-NZ', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
+            <p style={{ ...label, marginBottom: '0.4rem' }}>Overview</p>
             <h1 style={{ fontSize: '1.6rem', fontWeight: 600, color: c.ink, letterSpacing: '-0.02em' }}>
               {getGreeting()}{clientName ? `, ${clientName}` : ''}
             </h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
+            <span style={{ fontSize: '0.76rem', color: c.faint }}>
+              {new Date().toLocaleDateString('en-NZ', { weekday: 'short', month: 'short', day: 'numeric' })} · as of {new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}
+            </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: c.surface, border: `1px solid ${c.border}`, borderRadius: radius.pill, padding: '0.4rem 0.8rem' }}>
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', animation: 'walterpulse 1.6s ease-in-out infinite' }} />
-              <span style={{ fontSize: '0.8rem', color: c.body, fontWeight: 500 }}>Walter is live</span>
+              <span style={{ fontSize: '0.8rem', color: c.body, fontWeight: 500 }}>Live</span>
             </div>
             <NotificationBell />
           </div>
@@ -283,80 +289,53 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Walter Intelligence */}
-        <div style={{ ...card, padding: '1.5rem 1.75rem', marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <p style={{ ...label, color: c.ink, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ fontSize: '0.85rem' }}>✦</span> Walter Intelligence
-            </p>
-            <span style={{ fontSize: '0.75rem', color: c.faint }}>
-              {briefingLoading ? 'thinking…' : briefingTime ? `generated ${briefingTime}` : ''}
-            </span>
+        {/* Walter's read — AI briefing strip */}
+        <div style={{ ...card, marginBottom: '1rem', display: 'flex', gap: '0.9rem', alignItems: 'flex-start' }}>
+          <div style={{ width: 34, height: 34, borderRadius: radius.md, background: c.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1rem', color: c.ink }}>✦</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '0.72rem', color: c.faint, marginBottom: '0.4rem' }}>Walter&apos;s read{briefingTime ? ` · ${briefingTime}` : ''}</p>
+            {briefingLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>{[88, 64].map(shimmer)}</div>
+            ) : (
+              <p style={{ fontSize: '0.95rem', lineHeight: 1.55, color: c.body }}>{briefing}</p>
+            )}
           </div>
-
-          {briefingLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              {[92, 80, 64].map((w, i) => (
-                <div key={i} style={{ height: '13px', width: `${w}%`, borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f1,#e7e7e9,#f0f0f1)', backgroundSize: '200% 100%', animation: 'waltershimmer 1.4s ease-in-out infinite' }} />
-              ))}
-            </div>
-          ) : (
-            <p style={{ fontSize: '1.0rem', lineHeight: 1.6, color: c.body }}>{briefing}</p>
-          )}
-
-          {!briefingLoading && (
-            <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: '1.1rem', marginTop: '1.25rem' }}>
-              <p style={{ ...label, marginBottom: '0.85rem' }}>Act now · ranked by buying intent</p>
-              {briefingLeads.length === 0 ? (
-                <p style={{ color: c.faint, fontSize: '0.875rem' }}>No hot leads right now — Walter&apos;s watching every DM.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                  {briefingLeads.map((lead, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <span style={{ fontSize: '0.875rem', fontWeight: 500, color: c.ink, width: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{lead.username}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ height: '5px', background: c.surfaceAlt, borderRadius: '4px', overflow: 'hidden', marginBottom: '0.3rem' }}>
-                          <div style={{ width: `${lead.score}%`, height: '100%', background: c.ink, transition: 'width 0.6s ease' }} />
-                        </div>
-                        <p style={{ fontSize: '0.74rem', color: c.faint }}>{lead.reason}</p>
-                      </div>
-                      <span style={{ fontSize: '0.82rem', color: c.muted, width: '28px', textAlign: 'right' }}>{lead.score}</span>
-                      <a href="/dashboard/inbox" style={{ fontSize: '0.78rem', fontWeight: 500, color: i === 0 ? '#fff' : c.body, background: i === 0 ? c.ink : c.surface, border: `1px solid ${i === 0 ? c.ink : c.border}`, borderRadius: radius.sm, padding: '0.35rem 0.8rem', textDecoration: 'none' }}>Reply</a>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* KPIs — all-white, each with a 14-day sparkline + week-over-week delta */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
-          <KpiCard label="Replies · 7d" value={week.msgs} delta={week.dMsgs} spark={series} sub={`${stats.total} all time`} />
-          <KpiCard label="Leads · 7d" value={week.leads} delta={week.dLeads} spark={leadSeries} sub={`${stats.leads} all time`} />
-          <KpiCard label="Conversion" value={`${week.conv}%`} delta={week.dConv} sub="leads ÷ replies" />
-          <KpiCard label="Pipeline value" value={`$${pipelineValue.toLocaleString()}`} spark={leadSeries} sub={briefingLoading ? 'estimating…' : `${briefingLeads.length} open lead${briefingLeads.length === 1 ? '' : 's'}`} />
+        {/* Ledger band — five figures split by hairlines */}
+        <div style={{ ...card, padding: 0, marginBottom: '1rem', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', overflow: 'hidden' }}>
+          {ledger.map((m, i) => (
+            <div key={m.l} style={{ padding: '1.25rem 1.35rem', borderLeft: i > 0 ? `1px solid ${c.border}` : 'none' }}>
+              <p style={{ ...label, marginBottom: '0.7rem' }}>{m.l}</p>
+              <p style={{ ...statNumber, marginBottom: '0.5rem' }}>{m.v}</p>
+              {m.d !== undefined ? <Delta pct={m.d} /> : <p style={{ color: c.faint, fontSize: '0.74rem' }}>{m.sub}</p>}
+            </div>
+          ))}
         </div>
 
-        {/* Chart + Funnel */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-          <div style={card}>
-            <p style={{ ...label, marginBottom: '0.3rem' }}>Reply Activity</p>
-            <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.5rem' }}>Messages replied to — last 7 days</p>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.6rem', height: '130px' }}>
-              {chartData.map((val, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', height: '100%', justifyContent: 'flex-end' }}>
-                  <p style={{ color: c.faint, fontSize: '0.65rem' }}>{val || ''}</p>
-                  <div style={{ width: '100%', background: val > 0 ? c.ink : c.surfaceAlt, borderRadius: '4px 4px 0 0', height: `${Math.max((val / maxChart) * 100, val > 0 ? 8 : 3)}%`, transition: 'height 0.3s ease' }} />
-                  <p style={{ color: c.faint, fontSize: '0.65rem' }}>{getDayLabel(i)}</p>
-                </div>
-              ))}
+        {/* Activity + forecast */}
+        <div style={{ ...card, marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
+            <div>
+              <p style={{ ...label, marginBottom: '0.3rem' }}>Activity</p>
+              <p style={{ color: c.faint, fontSize: '0.8rem' }}>DMs handled — last 30 days, with 14-day forecast</p>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.72rem', color: c.muted, alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ width: 14, height: 2, background: c.ink, display: 'inline-block' }} />Actual</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ width: 14, height: 0, borderTop: `2px dashed ${c.faint}`, display: 'inline-block' }} />Forecast</span>
             </div>
           </div>
+          <AreaForecast actual={series30} forecast={fc14} />
+          <p style={{ fontSize: '0.85rem', color: c.muted, lineHeight: 1.6, borderTop: `1px solid ${c.border}`, paddingTop: '0.9rem', marginTop: '0.9rem' }}>
+            On your last 30 days&apos; trend, you&apos;re on track for about <strong style={{ color: c.ink, fontWeight: 600 }}>{projDMs} DMs</strong> and <strong style={{ color: c.ink, fontWeight: 600 }}>{projLeads} leads</strong> next month{projPipeline > 0 ? <> — roughly <strong style={{ color: c.ink, fontWeight: 600 }}>${projPipeline.toLocaleString()}</strong> of new pipeline</> : ''}.
+          </p>
+        </div>
 
+        {/* Funnel + Act now */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
           <div style={card}>
-            <p style={{ ...label, marginBottom: '0.3rem' }}>Funnel</p>
-            <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.5rem' }}>Message to lead conversion</p>
+            <p style={{ ...label, marginBottom: '0.3rem' }}>Conversion funnel</p>
+            <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.5rem' }}>Message to lead</p>
             {[
               { label: 'Messages', value: stats.total, pct: 100 },
               { label: 'Leads', value: stats.leads, pct: stats.total > 0 ? Math.round((stats.leads / stats.total) * 100) : 0 },
@@ -365,7 +344,7 @@ export default function Dashboard() {
               <div key={i} style={{ marginBottom: '1.1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                   <p style={{ color: c.muted, fontSize: '0.8rem' }}>{row.label}</p>
-                  <p style={{ color: c.ink, fontSize: '0.8rem', fontWeight: 500 }}>{row.value}</p>
+                  <p style={{ color: c.ink, fontSize: '0.8rem', fontWeight: 500, ...tabular }}>{row.value}</p>
                 </div>
                 <div style={{ background: c.surfaceAlt, borderRadius: '4px', height: '5px' }}>
                   <div style={{ background: c.ink, borderRadius: '4px', height: '5px', width: `${row.pct}%`, transition: 'width 0.5s ease' }} />
@@ -373,20 +352,44 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+
+          <div style={card}>
+            <p style={{ ...label, marginBottom: '0.3rem' }}>Act now</p>
+            <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.25rem' }}>Ranked by buying intent</p>
+            {briefingLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>{[90, 80, 70].map(shimmer)}</div>
+            ) : briefingLeads.length === 0 ? (
+              <p style={{ color: c.faint, fontSize: '0.85rem' }}>No hot leads right now — Walter&apos;s watching every DM.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                {briefingLeads.map((lead, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 500, color: c.ink, width: '96px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{lead.username}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ height: '5px', background: c.surfaceAlt, borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ width: `${lead.score}%`, height: '100%', background: c.ink, transition: 'width 0.6s ease' }} />
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: c.muted, width: '24px', textAlign: 'right', ...tabular }}>{lead.score}</span>
+                    <a href="/dashboard/inbox" style={{ fontSize: '0.76rem', fontWeight: 500, color: i === 0 ? '#fff' : c.body, background: i === 0 ? c.ink : c.surface, border: `1px solid ${i === 0 ? c.ink : c.border}`, borderRadius: radius.sm, padding: '0.3rem 0.7rem', textDecoration: 'none' }}>Reply</a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Recent Activity + AI Test */}
+        {/* Live activity + AI test */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <p style={label}>Live Activity</p>
+              <p style={label}>Live activity</p>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: c.faint }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', animation: 'walterpulse 1.6s ease-in-out infinite' }} /> real-time
               </span>
             </div>
             {messages.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem 0', color: c.faint }}>
-                <p style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>💬</p>
                 <p style={{ fontSize: '0.85rem' }}>No messages yet</p>
               </div>
             ) : messages.map(msg => (
@@ -402,7 +405,7 @@ export default function Dashboard() {
           </div>
 
           <div style={card}>
-            <p style={{ ...label, marginBottom: '0.3rem' }}>Test Your AI</p>
+            <p style={{ ...label, marginBottom: '0.3rem' }}>Test your AI</p>
             <p style={{ color: c.faint, fontSize: '0.8rem', marginBottom: '1.25rem' }}>Simulate an incoming message</p>
             <input
               type="text"
@@ -417,11 +420,11 @@ export default function Dashboard() {
               disabled={loading || !testMessage}
               style={{ ...btn, width: '100%', padding: '0.65rem', opacity: loading || !testMessage ? 0.4 : 1 }}
             >
-              {loading ? 'Generating…' : 'Generate Reply →'}
+              {loading ? 'Generating…' : 'Generate reply →'}
             </button>
             {testReply && (
               <div style={{ marginTop: '1.1rem', padding: '1.1rem', background: c.surfaceAlt, borderRadius: radius.md, borderLeft: `2px solid ${c.ink}` }}>
-                <p style={{ ...label, marginBottom: '0.5rem' }}>AI Response</p>
+                <p style={{ ...label, marginBottom: '0.5rem' }}>AI response</p>
                 <p style={{ color: c.body, fontSize: '0.875rem', lineHeight: 1.65 }}>{testReply}</p>
               </div>
             )}
