@@ -14,6 +14,9 @@ export const font =
   'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
 export const fontMono =
   'var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace'
+// Display serif for headings — the editorial "luxury monochrome" voice.
+export const fontSerif =
+  'var(--font-fraunces), Georgia, "Times New Roman", serif'
 
 // Refined cool-neutral (zinc) scale.
 export const c = {
@@ -44,6 +47,13 @@ export const c = {
   bad: '#b91c1c',
   badBg: '#fef2f2',
   badBorder: '#fecaca',
+
+  // Dark sidebar / chrome — the monochrome "luxury" identity.
+  sidebarBg: '#0f0f10',
+  sidebarText: '#ededee',
+  sidebarMuted: '#8a8a90',
+  sidebarActiveBg: '#1d1d20',
+  sidebarBorder: '#262629',
 } as const
 
 export const radius = { sm: '6px', md: '8px', lg: '12px', xl: '14px', pill: '999px' }
@@ -78,11 +88,22 @@ export const label: CSSProperties = {
 }
 
 export const pageTitle: CSSProperties = {
-  fontSize: '1.5rem',
-  fontWeight: 600,
-  letterSpacing: '-0.025em',
+  fontFamily: fontSerif,
+  fontSize: '2.1rem',
+  fontWeight: 500,
+  letterSpacing: '-0.01em',
   color: c.ink,
-  lineHeight: 1.15,
+  lineHeight: 1.1,
+}
+
+// Big editorial serif heading for hero moments.
+export const displayTitle: CSSProperties = {
+  fontFamily: fontSerif,
+  fontSize: '2.4rem',
+  fontWeight: 500,
+  letterSpacing: '-0.015em',
+  color: c.ink,
+  lineHeight: 1.05,
 }
 
 export const sectionTitle: CSSProperties = {

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 import DailyMessage from '@/components/DailyMessage'
 import NotificationBell from '@/components/NotificationBell'
-import { c, font, radius, card, label, muted, statNumber, btn, tabular, input as inputStyle } from '@/lib/theme'
+import { c, font, fontSerif, radius, card, label, muted, statNumber, btn, tabular, input as inputStyle } from '@/lib/theme'
 
 // Week-over-week delta chip.
 function Delta({ pct }: { pct: number }) {
@@ -245,7 +245,7 @@ export default function Dashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '1.1rem', borderBottom: `1px solid ${c.border}`, marginBottom: '1.25rem' }}>
           <div>
             <p style={{ ...label, marginBottom: '0.4rem' }}>Overview</p>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 600, color: c.ink, letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontFamily: fontSerif, fontSize: '2rem', fontWeight: 500, color: c.ink, letterSpacing: '-0.01em', lineHeight: 1.1 }}>
               {getGreeting()}{clientName ? `, ${clientName}` : ''}
             </h1>
           </div>
