@@ -5,11 +5,21 @@ import { buildSalesSystemPrompt } from '@/lib/sales-prompt'
 import { sendDiscord } from '@/lib/discord'
 import { generateVoiceReply } from '@/lib/voice-memo'
 import { resolveIgUsername } from '@/lib/ig-username'
+import { getGif } from '@/lib/gif'
 
 // Allow the function to stay alive long enough to honour a reply delay (the
 // reply is sent from an after() callback once the delay elapses). Capped at 60s.
 export const maxDuration = 60
 const MAX_DELAY_SECONDS = 45
+
+// Appended to the reply prompt so the AI can flag trolls. If the sender is
+// clearly messing with the bot, it replies with ONLY this token and we disengage.
+const DISENGAGE_SUFFIX = `
+
+DISENGAGING — read carefully:
+If the person is CLEARLY trolling, abusing you, spamming, sending gibberish, or just messing with you / wasting your time (NOT a real prospect with a genuine question), do not engage. Reply with ONLY this exact token and nothing else:
+[DISENGAGE]
+Use it sparingly and only for clear cases — never for a real question, a confused person, or someone being a bit blunt. When in doubt, reply normally.`
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -51,6 +61,26 @@ async function sendInstagramAudio(recipientId: string, audioUrl: string, accessT
     }
   )
   return response.json()
+}
+
+// Send a GIF (as an image attachment). Best-effort — used sparingly.
+async function sendInstagramGif(recipientId: string, gifUrl: string, accessToken: string) {
+  try {
+    const response = await fetch(
+      `https://graph.instagram.com/v21.0/me/messages`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { attachment: { type: 'image', payload: { url: gifUrl } } }
+        })
+      }
+    )
+    return response.json()
+  } catch {
+    return null
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -131,23 +161,38 @@ export async function POST(req: NextRequest) {
       // No match → a human (the owner) sent it → pause the AI for this convo.
       if (follower) {
         await supabase.from('conversation_settings').upsert(
-          { client_id: clientData.id, from_username: follower, ai_enabled: false, updated_at: new Date().toISOString() },
+          { client_id: clientData.id, from_username: follower, ai_enabled: false, paused_reason: 'owner', updated_at: new Date().toISOString() },
           { onConflict: 'client_id,from_username' },
         )
       }
       return NextResponse.json({ status: 'owner replied — AI paused', from_username: follower })
     }
 
-    // Per-conversation AI switch: if the owner paused the bot for this person,
-    // record the DM but don't auto-reply (they're taking the convo over).
-    // Defensive — a missing conversation_settings table/row defaults to enabled.
+    // Per-conversation AI switch. paused_reason distinguishes 'owner' (they took
+    // the convo over) from 'troll' (the AI disengaged from someone messing with it).
     const { data: convo } = await supabase
       .from('conversation_settings')
-      .select('ai_enabled')
+      .select('ai_enabled, paused_reason')
       .eq('client_id', clientData.id)
       .eq('from_username', senderId)
       .maybeSingle()
-    const aiEnabled = convo?.ai_enabled !== false
+    let aiEnabled = convo?.ai_enabled !== false
+
+    // Lead / buying-intent detection (used for routing + troll re-engagement).
+    const leadKeywords = ['price', 'cost', 'how much', 'interested', 'buy', 'purchase', 'book', 'appointment', 'available', 'sign up', 'join', 'start', 'package', 'plan', 'invest', 'hire', 'work with', 'collab', 'partnership']
+    const isLead = leadKeywords.some(keyword => messageText.toLowerCase().includes(keyword))
+    const emailMatch = messageText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
+    const detectedEmail = emailMatch ? emailMatch[0] : null
+
+    // Re-engage a troll-disengaged conversation ONLY if they now show real buying
+    // intent. An owner pause is never auto-overridden.
+    if (!aiEnabled && convo?.paused_reason === 'troll' && (isLead || detectedEmail)) {
+      await supabase.from('conversation_settings').upsert(
+        { client_id: clientData.id, from_username: senderId, ai_enabled: true, paused_reason: null, updated_at: new Date().toISOString() },
+        { onConflict: 'client_id,from_username' },
+      )
+      aiEnabled = true
+    }
 
     // Use the client's own Instagram token if they've connected one; otherwise
     // fall back to the shared token (the original single-account setup).
@@ -181,7 +226,7 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 300,
-      system: buildSalesSystemPrompt(clientData),
+      system: buildSalesSystemPrompt(clientData) + DISENGAGE_SUFFIX,
       messages: [
         ...priorTurns,
         { role: 'user', content: messageText },
@@ -191,13 +236,11 @@ export async function POST(req: NextRequest) {
     aiReply = response.content[0].type === 'text' ? response.content[0].text : ''
     }
 
-    // Detect leads — buying intent keywords
-    const leadKeywords = ['price', 'cost', 'how much', 'interested', 'buy', 'purchase', 'book', 'appointment', 'available', 'sign up', 'join', 'start', 'package', 'plan', 'invest', 'hire', 'work with', 'collab', 'partnership']
-    const isLead = leadKeywords.some(keyword => messageText.toLowerCase().includes(keyword))
-
-    // Detect email in message
-    const emailMatch = messageText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
-    const detectedEmail = emailMatch ? emailMatch[0] : null
+    // Troll detection: the AI flags clear time-wasters with a [DISENGAGE] token.
+    // We don't send that token — instead we go quiet for this person (below).
+    const trolling = aiEnabled && aiReply.includes('[DISENGAGE]')
+    if (trolling) aiReply = ''
+    const replied = aiEnabled && !trolling
 
     // Resolve the sender's real @username once (cached on prior rows) so the
     // inbox and leads show a handle, not the numeric IGSID. Best-effort.
@@ -221,13 +264,13 @@ export async function POST(req: NextRequest) {
         from_handle: fromHandle,
         content: messageText,
         ai_reply: aiReply,
-        status: aiEnabled ? 'replied' : 'manual',
-        is_lead: isLead || !!detectedEmail,
+        status: replied ? 'replied' : 'manual',
+        is_lead: (isLead || !!detectedEmail) && !trolling,
       })
       .select()
       .single()
 
-    if ((isLead || detectedEmail) && savedMessage) {
+    if ((isLead || detectedEmail) && !trolling && savedMessage) {
       const { data: savedLead } = await supabase
         .from('leads')
         .insert({
@@ -262,7 +305,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (aiEnabled) {
+    if (replied) {
       // Deliver the reply: voice memo if the client opted in (dormant unless
       // ELEVENLABS_API_KEY is set), otherwise text. See lib/voice-memo.ts.
       const deliver = async () => {
@@ -289,8 +332,20 @@ export async function POST(req: NextRequest) {
       } else {
         await deliver()
       }
+    } else if (trolling) {
+      // Disengage: go quiet for this person, with a single playful GIF send-off
+      // (dormant unless TENOR_API_KEY is set). They only get the AI back if they
+      // later message with genuine buying intent (handled at re-engagement above).
+      await supabase.from('conversation_settings').upsert(
+        { client_id: clientData.id, from_username: senderId, ai_enabled: false, paused_reason: 'troll', updated_at: new Date().toISOString() },
+        { onConflict: 'client_id,from_username' },
+      )
+      after(async () => {
+        const gif = await getGif('eye roll whatever bye')
+        if (gif) await sendInstagramGif(senderId, gif, accessToken)
+      })
     }
-    return NextResponse.json({ status: aiEnabled ? 'ok' : 'manual', reply: aiReply })
+    return NextResponse.json({ status: replied ? 'ok' : trolling ? 'disengaged' : 'manual', reply: aiReply })
 
   } catch (error) {
     console.error('Webhook error:', error)
