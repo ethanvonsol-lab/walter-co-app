@@ -8,6 +8,7 @@ import { c, font, radius, card, label, pageTitle, tabular } from '@/lib/theme'
 interface Lead {
   id: string
   from_username: string
+  from_handle?: string | null
   intent_summary: string
   status: string
   created_at: string
@@ -48,6 +49,7 @@ export default function LeadsPage() {
   const [sortMode, setSortMode] = useState<'hot' | 'recent'>('hot')
   const [avgDealValue, setAvgDealValue] = useState(DEFAULT_DEAL_VALUE)
   const [enrichingId, setEnrichingId] = useState<string | null>(null)
+  const [handleMap, setHandleMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -61,6 +63,22 @@ export default function LeadsPage() {
       if (data) {
         setLeads(data)
         if (data.length > 0) setSelected(data[0])
+
+        // Show real @handles: seed cached ones, lazily resolve numeric IGSIDs.
+        const seed: Record<string, string> = {}
+        data.forEach((l: Lead) => { if (l.from_handle) seed[l.from_username] = l.from_handle })
+        setHandleMap(seed)
+        ;[...new Set(data.map((l: Lead) => l.from_username))]
+          .filter(u => !seed[u] && /^\d+$/.test(u))
+          .forEach(igsid => {
+            fetch('/api/instagram/resolve-handle', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ clientId: client.id, igsid }),
+            })
+              .then(r => r.json())
+              .then(({ handle }) => { if (handle) setHandleMap(prev => ({ ...prev, [igsid]: handle })) })
+              .catch(() => {})
+          })
       }
       setLoading(false)
 
@@ -73,7 +91,9 @@ export default function LeadsPage() {
           table: 'leads',
           filter: `client_id=eq.${client.id}`
         }, (payload) => {
-          setLeads(prev => [payload.new as Lead, ...prev])
+          const l = payload.new as Lead
+          setLeads(prev => [l, ...prev])
+          if (l.from_handle) setHandleMap(prev => ({ ...prev, [l.from_username]: l.from_handle as string }))
         })
         .subscribe()
 
@@ -144,6 +164,8 @@ export default function LeadsPage() {
     sortMode === 'hot' ? b.score - a.score : new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
   const selectedScored = selected ? scored.find(l => l.id === selected.id) : null
+  // Show the resolved @handle when we have it, otherwise the raw id.
+  const nameFor = (u: string) => handleMap[u] || u
 
   // Pipeline value = sum of estimated value for still-open leads.
   const open = scored.filter(l => l.status === 'new' || l.status === 'contacted')
@@ -205,7 +227,7 @@ export default function LeadsPage() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.3rem' }}>
-                  <p style={{ fontSize: '0.85rem', fontWeight: 500, color: c.ink }}>@{lead.from_username}</p>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 500, color: c.ink }}>@{nameFor(lead.from_username)}</p>
                   <p style={{ fontSize: '0.68rem', color: c.faint }}>{timeAgo(lead.created_at)}</p>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: c.muted, marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.intent_summary}</p>
@@ -231,7 +253,7 @@ export default function LeadsPage() {
             <>
               <div style={{ marginBottom: '1.75rem', paddingBottom: '1.75rem', borderBottom: `1px solid ${c.border}` }}>
                 <p style={{ ...label, marginBottom: '0.5rem' }}>{timeAgo(selectedScored.created_at)}</p>
-                <h2 style={{ ...pageTitle, fontSize: '1.5rem', marginBottom: '1rem' }}>@{selectedScored.from_username}</h2>
+                <h2 style={{ ...pageTitle, fontSize: '1.5rem', marginBottom: '1rem' }}>@{nameFor(selectedScored.from_username)}</h2>
                 <p style={{ color: c.body, fontSize: '0.9rem', lineHeight: 1.65, marginBottom: '1.5rem', maxWidth: '520px' }}>{selectedScored.intent_summary}</p>
 
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -311,8 +333,8 @@ export default function LeadsPage() {
                 <p style={{ ...label, marginBottom: '0.9rem' }}>Next Steps</p>
                 <p style={{ color: c.body, fontSize: '0.9rem', lineHeight: 1.7 }}>
                   {selectedScored.score >= 70
-                    ? <>Hot lead — reach out to <strong style={{ color: c.ink }}>@{selectedScored.from_username}</strong> now while intent is high. Mark <em>contacted</em> once you&apos;ve messaged them, <em>converted</em> when they sign.</>
-                    : <>Reach out to <strong style={{ color: c.ink }}>@{selectedScored.from_username}</strong> personally to close the deal. Mark as <em>contacted</em> once you&apos;ve reached out, and <em>converted</em> once they become a client.</>}
+                    ? <>Hot lead — reach out to <strong style={{ color: c.ink }}>@{nameFor(selectedScored.from_username)}</strong> now while intent is high. Mark <em>contacted</em> once you&apos;ve messaged them, <em>converted</em> when they sign.</>
+                    : <>Reach out to <strong style={{ color: c.ink }}>@{nameFor(selectedScored.from_username)}</strong> personally to close the deal. Mark as <em>contacted</em> once you&apos;ve reached out, and <em>converted</em> once they become a client.</>}
                 </p>
               </div>
             </>

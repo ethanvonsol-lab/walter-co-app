@@ -56,6 +56,7 @@ function AreaForecast({ actual, forecast, height = 200 }: { actual: number[]; fo
 interface Message {
   id: string
   from_username: string
+  from_handle?: string | null
   content: string
   ai_reply: string
   is_lead: boolean
@@ -395,7 +396,7 @@ export default function Dashboard() {
             ) : messages.map(msg => (
               <div key={msg.id} style={{ paddingBottom: '0.9rem', marginBottom: '0.9rem', borderBottom: `1px solid ${c.border}`, background: flashId === msg.id ? '#f0fdf4' : 'transparent', borderLeft: flashId === msg.id ? '2px solid #22c55e' : '2px solid transparent', paddingLeft: '0.6rem', marginLeft: '-0.6rem', borderRadius: '0 4px 4px 0', transition: 'background 0.6s ease' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <p style={{ fontSize: '0.85rem', fontWeight: 500, color: c.ink }}>@{msg.from_username}</p>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 500, color: c.ink }}>@{msg.from_handle || msg.from_username}</p>
                   {msg.is_lead && <span style={{ fontSize: '0.62rem', fontWeight: 500, background: c.ink, color: '#fff', padding: '0.15rem 0.45rem', borderRadius: '5px' }}>LEAD</span>}
                 </div>
                 <p style={{ fontSize: '0.82rem', color: c.muted, marginBottom: '0.2rem' }}>{msg.content}</p>

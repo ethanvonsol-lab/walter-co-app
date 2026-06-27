@@ -4,6 +4,7 @@ import { supabaseServer as supabase } from '@/lib/supabase-server'
 import { buildSalesSystemPrompt } from '@/lib/sales-prompt'
 import { sendDiscord } from '@/lib/discord'
 import { generateVoiceReply } from '@/lib/voice-memo'
+import { resolveIgUsername } from '@/lib/ig-username'
 
 // Allow the function to stay alive long enough to honour a reply delay (the
 // reply is sent from an after() callback once the delay elapses). Capped at 60s.
@@ -198,6 +199,18 @@ export async function POST(req: NextRequest) {
     const emailMatch = messageText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
     const detectedEmail = emailMatch ? emailMatch[0] : null
 
+    // Resolve the sender's real @username once (cached on prior rows) so the
+    // inbox and leads show a handle, not the numeric IGSID. Best-effort.
+    const { data: priorHandle } = await supabase
+      .from('messages')
+      .select('from_handle')
+      .eq('client_id', clientData.id)
+      .eq('from_username', senderId)
+      .not('from_handle', 'is', null)
+      .limit(1)
+      .maybeSingle()
+    const fromHandle = priorHandle?.from_handle ?? await resolveIgUsername(senderId, accessToken)
+
     const { data: savedMessage } = await supabase
       .from('messages')
       .insert({
@@ -205,6 +218,7 @@ export async function POST(req: NextRequest) {
         instagram_message_id: messaging.message.mid,
         type: 'dm',
         from_username: senderId,
+        from_handle: fromHandle,
         content: messageText,
         ai_reply: aiReply,
         status: aiEnabled ? 'replied' : 'manual',
@@ -220,6 +234,7 @@ export async function POST(req: NextRequest) {
           client_id: clientData.id,
           message_id: savedMessage.id,
           from_username: senderId,
+          from_handle: fromHandle,
           intent_summary: detectedEmail
             ? `User provided email: ${detectedEmail}. Message: "${messageText}"`
             : `User asked: "${messageText}"`,

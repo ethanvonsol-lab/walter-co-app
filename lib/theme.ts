@@ -11,7 +11,7 @@ import type { CSSProperties } from 'react'
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const font =
-  'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+  'var(--font-figtree), var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
 export const fontMono =
   'var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace'
 // Display serif for headings — the editorial "luxury monochrome" voice.
@@ -56,7 +56,7 @@ export const c = {
   sidebarBorder: '#262629',
 } as const
 
-export const radius = { sm: '6px', md: '8px', lg: '12px', xl: '14px', pill: '999px' }
+export const radius = { sm: '8px', md: '12px', lg: '16px', xl: '20px', pill: '999px' }
 
 // Minimal shadows — cards lean on borders; elevation only for overlays.
 export const shadow = {

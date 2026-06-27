@@ -8,6 +8,7 @@ import { c, font, radius, card, label, pageTitle, tabular } from '@/lib/theme'
 interface Message {
   id: string
   from_username: string
+  from_handle?: string | null
   content: string
   ai_reply: string
   is_lead: boolean
@@ -64,6 +65,7 @@ function AiSwitch({ on, onClick, size = 'sm' }: { on: boolean; onClick: (e: Reac
 export default function InboxPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [aiMap, setAiMap] = useState<Record<string, boolean>>({})
+  const [handleMap, setHandleMap] = useState<Record<string, string>>({})
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -86,6 +88,22 @@ export default function InboxPage() {
       if (data) {
         setMessages(data)
         if (data.length > 0) setSelectedUser(data[0].from_username)
+
+        // Seed @handles already cached on the rows, then lazily resolve any
+        // conversation still showing a numeric IGSID.
+        const seed: Record<string, string> = {}
+        data.forEach((m: Message) => { if (m.from_handle) seed[m.from_username] = m.from_handle })
+        setHandleMap(seed)
+        const unresolved = [...new Set(data.map((m: Message) => m.from_username))].filter(u => !seed[u] && /^\d+$/.test(u))
+        unresolved.forEach(igsid => {
+          fetch('/api/instagram/resolve-handle', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId: client.id, igsid }),
+          })
+            .then(r => r.json())
+            .then(({ handle }) => { if (handle) setHandleMap(prev => ({ ...prev, [igsid]: handle })) })
+            .catch(() => {})
+        })
       }
 
       // Per-conversation AI switches (table may not exist yet — fail soft).
@@ -102,7 +120,11 @@ export default function InboxPage() {
         .channel('messages-channel')
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'messages', filter: `client_id=eq.${client.id}`
-        }, (payload) => setMessages(prev => [payload.new as Message, ...prev]))
+        }, (payload) => {
+          const m = payload.new as Message
+          setMessages(prev => [m, ...prev])
+          if (m.from_handle) setHandleMap(prev => ({ ...prev, [m.from_username]: m.from_handle as string }))
+        })
         .subscribe()
 
       return () => { supabase.removeChannel(channel) }
@@ -181,6 +203,8 @@ export default function InboxPage() {
   }
 
   const pausedCount = conversations.filter(c => !c.aiEnabled).length
+  // Show the resolved @handle when we have it, otherwise the raw id.
+  const nameFor = (u: string) => handleMap[u] || u
 
   const filterChip = (active: boolean): React.CSSProperties => ({
     padding: '0.3rem 0.85rem', borderRadius: radius.pill, border: `1px solid ${active ? c.ink : c.border}`,
@@ -234,7 +258,7 @@ export default function InboxPage() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                    <p style={{ fontSize: '0.85rem', fontWeight: 500, color: c.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{conv.username}</p>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 500, color: c.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{nameFor(conv.username)}</p>
                     <AiSwitch on={conv.aiEnabled} onClick={(e) => toggleAi(conv.username, e)} />
                   </div>
                   <p style={{ fontSize: '0.78rem', color: c.muted, marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.last.content}</p>
@@ -262,7 +286,7 @@ export default function InboxPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <p style={{ ...label, marginBottom: '0.5rem' }}>{selected.count} message{selected.count === 1 ? '' : 's'} · {timeAgo(selected.last.created_at)}</p>
-                    <h2 style={{ ...pageTitle, fontSize: '1.5rem' }}>@{selected.username}</h2>
+                    <h2 style={{ ...pageTitle, fontSize: '1.5rem' }}>@{nameFor(selected.username)}</h2>
                   </div>
                   {/* AI control */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: c.surface, border: `1px solid ${c.border}`, borderRadius: radius.lg, padding: '0.6rem 0.9rem' }}>
@@ -277,7 +301,7 @@ export default function InboxPage() {
 
               {!selected.aiEnabled && (
                 <div style={{ background: c.surface, border: `1px solid ${c.border}`, borderLeft: '2px solid #22c55e', borderRadius: '0 8px 8px 0', padding: '0.8rem 1rem', marginBottom: '1.5rem' }}>
-                  <p style={{ fontSize: '0.82rem', color: c.body }}>You&apos;re handling this chat. Walter won&apos;t auto-reply to @{selected.username} until you switch it back on.</p>
+                  <p style={{ fontSize: '0.82rem', color: c.body }}>You&apos;re handling this chat. Walter won&apos;t auto-reply to @{nameFor(selected.username)} until you switch it back on.</p>
                 </div>
               )}
 
@@ -327,7 +351,7 @@ export default function InboxPage() {
                   </div>
                 ) : (
                   <p style={{ color: c.muted, fontSize: '0.85rem', lineHeight: 1.6 }}>
-                    Walter will write a follow-up DM in your voice to re-open the conversation with @{selected.username}.
+                    Walter will write a follow-up DM in your voice to re-open the conversation with @{nameFor(selected.username)}.
                   </p>
                 )}
               </div>
