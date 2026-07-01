@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     const summary = `Total messages: ${total}. Leads captured: ${leads} (${conversion}% conversion). Escalated: ${escalated}. Last 7 days: ${last7} messages vs ${prev7} the previous 7 days. Most common words in incoming DMs: ${topWords}.`
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-sonnet-5',
       max_tokens: 512,
       system: `You are Walter, the intelligence layer for an AI that auto-replies to a creator's Instagram DMs and captures leads. Given the performance summary, write exactly 3 insights as short, specific, punchy sentences (each under 18 words): one on what's working, one on what to improve, and one concrete action to take this week. Reference the real numbers. No fluff, no preamble, no markdown.`,
       messages: [{ role: 'user', content: summary }],
