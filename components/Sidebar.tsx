@@ -41,6 +41,7 @@ export default function Sidebar({ active }: SidebarProps) {
     { label: 'Voice Profile', href: '/dashboard/voice' },
     { label: 'Settings', href: '/dashboard/settings' },
     { label: 'Chat Widget', href: '/widget' },
+    { label: 'Help', href: '/dashboard/help' },
   ]
 
   const navLink = (isActive: boolean): React.CSSProperties => ({

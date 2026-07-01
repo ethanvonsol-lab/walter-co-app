@@ -1,15 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { c, font, radius } from '@/lib/theme'
+
+const REMEMBER_KEY = 'walter_remembered_email'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [resetMsg, setResetMsg] = useState('')
+
+  // Prefill the email we saved last time "Remember me" was on, so returning
+  // clients don't retype it. The password itself is never stored by us — the
+  // browser's own password manager handles that (see the autoComplete fields).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBER_KEY)
+      if (saved) {
+        setEmail(saved)
+        setRememberMe(true)
+      }
+    } catch { /* localStorage unavailable — no prefill */ }
+  }, [])
 
   const handleReset = async () => {
     setError(''); setResetMsg('')
@@ -29,6 +45,11 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
+      // Remember the email for next time (or clear it if they unticked the box).
+      try {
+        if (rememberMe) localStorage.setItem(REMEMBER_KEY, email)
+        else localStorage.removeItem(REMEMBER_KEY)
+      } catch { /* ignore storage failures */ }
       window.location.replace('/dashboard')
     }
   }
@@ -73,11 +94,13 @@ export default function LoginPage() {
           <h1 style={{ fontSize: '1.875rem', fontWeight: 600, letterSpacing: '-0.025em', color: c.ink, marginBottom: '0.35rem' }}>Welcome back</h1>
           <p style={{ color: c.muted, fontSize: '0.875rem', marginBottom: '2.5rem' }}>Sign in to your dashboard.</p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={e => { e.preventDefault(); handleLogin() }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <p style={fieldLabel}>Email</p>
               <input
                 type="email"
+                name="email"
+                autoComplete="username"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
@@ -88,9 +111,10 @@ export default function LoginPage() {
               <p style={fieldLabel}>Password</p>
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
                 placeholder="••••••••"
                 style={fieldInput}
               />
@@ -99,20 +123,29 @@ export default function LoginPage() {
             {error && <p style={{ color: c.bad, fontSize: '0.8rem' }}>{error}</p>}
             {resetMsg && <p style={{ color: c.good, fontSize: '0.8rem' }}>{resetMsg}</p>}
 
-            <div style={{ textAlign: 'right' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', color: c.muted, cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  style={{ width: '15px', height: '15px', accentColor: c.ink, cursor: 'pointer' }}
+                />
+                Remember me
+              </label>
               <button type="button" onClick={handleReset} style={{ background: 'none', border: 'none', color: c.muted, fontSize: '0.78rem', cursor: 'pointer', fontFamily: font, padding: 0 }}>
                 Forgot password?
               </button>
             </div>
 
             <button
-              onClick={handleLogin}
+              type="submit"
               disabled={loading}
               style={{ padding: '0.7rem', borderRadius: radius.md, border: `1px solid ${c.ink}`, background: c.ink, color: '#fff', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, marginTop: '0.25rem', opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s', fontFamily: font }}
             >
               {loading ? 'Signing in…' : 'Sign in →'}
             </button>
-          </div>
+          </form>
 
           <div style={{ marginTop: '2.5rem', paddingTop: '1.75rem', borderTop: `1px solid ${c.border}` }}>
             <p style={{ color: c.faint, fontSize: '0.8rem' }}>Not a client yet? <a href="mailto:ethanvonl@icloud.com" style={{ color: c.muted, textDecoration: 'none', borderBottom: `1px solid ${c.borderStrong}` }}>Get in touch →</a></p>

@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       .join('\n')
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-sonnet-5',
       max_tokens: 1024,
       system: `You are Walter, the intelligence layer behind an AI that auto-replies to a creator's Instagram DMs in their voice. Each morning you write the creator a sharp, human briefing of what happened, then rank the hottest leads to act on now.
 
@@ -96,7 +96,7 @@ The creator is ${client?.name || 'the owner'}.${
 
 Write the "briefing" as 2-4 punchy sentences, warm but direct, like a sharp chief of staff. Call out the single most important thing to do. Reference real usernames and what they asked. No fluff, no preamble, no markdown.
 
-For "leads", return up to 5 conversations ranked by genuine buying intent, highest first. "score" is 0-100 purchase intent. "reason" is a short phrase (under 12 words) on why they're hot. Only include people who showed real interest — if no one did, return an empty list.`,
+For "leads", return up to 5 conversations ranked by genuine buying intent, highest first. List each person ONCE — never repeat a username. "score" is 0-100 purchase intent and must be grounded in CONCRETE signals: asking price, wanting to book/buy, sharing a budget or contact details, a firm timeline. Vague enthusiasm — someone repeatedly saying they're "interested" or "love this" with no specifics — is mild intent (cap it around 40), NOT hot. Do not let repetition or excitement inflate a score. "reason" is a short phrase (under 12 words) on why they're hot. Only include people who showed real interest — if no one did, return an empty list.`,
       messages: [
         {
           role: 'user',
@@ -114,10 +114,21 @@ For "leads", return up to 5 conversations ranked by genuine buying intent, highe
       parsed = { ...EMPTY }
     }
 
-    // Keep leads sorted by score and clamp to a sane range.
+    // Keep leads sorted by score, clamp to a sane range, and — critically — keep
+    // only ONE entry per person. The prompt asks the model not to repeat a
+    // username, but that's not guaranteed; without this the dashboard's pipeline
+    // total (which sums these) could double-count a single chatty prospect and
+    // over-state pipeline, the exact inflation this change is meant to prevent.
+    const seenUser = new Set<string>()
     const leads = (parsed.leads || [])
       .map((l) => ({ ...l, score: Math.max(0, Math.min(100, Math.round(l.score))) }))
       .sort((a, b) => b.score - a.score)
+      .filter((l) => {
+        const key = (l.username || '').toLowerCase().replace(/^@/, '').trim()
+        if (!key || seenUser.has(key)) return false
+        seenUser.add(key)
+        return true
+      })
       .slice(0, 5)
 
     return NextResponse.json({ briefing: parsed.briefing || EMPTY.briefing, leads })

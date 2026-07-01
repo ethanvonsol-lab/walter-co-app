@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
     let text = ''
     try {
       const resp = await anthropic.messages.create({
-        model: 'claude-opus-4-8',
+        model: 'claude-sonnet-5',
         max_tokens: 180,
         system: buildSalesSystemPrompt(client),
         messages: [{

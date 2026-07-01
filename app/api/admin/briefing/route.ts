@@ -92,7 +92,7 @@ Then return a "flags" array of up to 6 specific things to act on, each with: cli
 Respond with JSON matching the schema.`
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-sonnet-5',
       max_tokens: 1200,
       messages: [{ role: 'user', content: prompt }],
       tools: [{ name: 'fleet_briefing', description: 'Operations briefing for the fleet', input_schema: schema as unknown as Anthropic.Tool['input_schema'] }],

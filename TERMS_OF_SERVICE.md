@@ -58,14 +58,14 @@ You agree to:
 ## 5. Pricing & Billing
 
 **Direct Plan (Standard):**
-- Setup Fee: $350 USD (refundable within 14 days only)
-- Monthly Recurring: $500 USD (non-refundable)
+- Setup Fee: $350 USD (non-refundable)
+- Monthly Recurring: $500 USD (refundable within 14 days of payment only)
 - Billing: Monthly, charged on the date you sign up
 - Payment Method: Stripe (credit card)
 
 **Agency Plan:**
-- Setup Fee: $500 USD (refundable within 14 days only)
-- Monthly Recurring: $1,000 USD (non-refundable)
+- Setup Fee: $500 USD (non-refundable)
+- Monthly Recurring: $1,000 USD (refundable within 14 days of payment only)
 - Includes white-label dashboard and multi-client support
 
 **What's Included:**
@@ -85,16 +85,19 @@ You agree to:
 
 ## 6. Refund Policy
 
-**Setup Fee ($350):**
-- Refundable ONLY within 14 days of signup
-- Requires completed onboarding call
-- After 14 days: non-refundable under all circumstances
-- Reason: Reflects time invested in your onboarding and voice profile training
+**Setup Fee ($350 / $500 Agency):**
+- Non-refundable under all circumstances
+- The setup fee covers onboarding, voice profile training, and account configuration — this work is completed at signup and cannot be reversed
 
-**Monthly Fee ($500):**
-- Non-refundable after payment
-- No exceptions, no partial refunds
-- This is a service fee for ongoing access, not a product purchase
+**Monthly Fee ($500 / $1,000 Agency):**
+- Refundable ONLY within 14 days of the payment date
+- To request a refund, email ethanvonl@icloud.com with "Refund Request" in the subject line within the 14-day window
+- After 14 days: non-refundable, no exceptions, no negotiations
+- No partial refunds under any circumstances
+
+**3-Month Growth Plan:**
+- If you have signed the 3-Month Growth Plan, ALL fees (setup and monthly) are non-refundable from the date of signing
+- No refunds, no exceptions, no negotiations — by signing the 3-Month Growth Plan you acknowledge this in full
 
 ---
 

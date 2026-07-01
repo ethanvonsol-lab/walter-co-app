@@ -25,6 +25,18 @@ interface Conversation {
   isLead: boolean
   score: number
   aiEnabled: boolean
+  pausedReason: string | null
+}
+
+// Why a conversation is paused → how we label it. 'owner' (or a manual toggle)
+// means you're handling it; the rest are people Walter stepped back from.
+function pauseInfo(reason: string | null) {
+  switch (reason) {
+    case 'troll': return { badge: 'TIME-WASTER', detail: 'Walter stepped back — time-waster' }
+    case 'optout': return { badge: 'OPTED OUT', detail: 'They asked to stop — Walter went quiet' }
+    case 'abuse': return { badge: 'ABUSIVE', detail: 'Walter stepped back — abusive' }
+    default: return { badge: 'YOU', detail: 'Paused — you reply' }
+  }
 }
 
 // Lightweight buying-intent score (0-100) from message text — same signals the
@@ -65,6 +77,7 @@ function AiSwitch({ on, onClick, size = 'sm' }: { on: boolean; onClick: (e: Reac
 export default function InboxPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [aiMap, setAiMap] = useState<Record<string, boolean>>({})
+  const [reasonMap, setReasonMap] = useState<Record<string, string | null>>({})
   const [handleMap, setHandleMap] = useState<Record<string, string>>({})
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -108,11 +121,16 @@ export default function InboxPage() {
 
       // Per-conversation AI switches (table may not exist yet — fail soft).
       const { data: settings } = await supabase
-        .from('conversation_settings').select('from_username, ai_enabled').eq('client_id', client.id)
+        .from('conversation_settings').select('from_username, ai_enabled, paused_reason').eq('client_id', client.id)
       if (settings) {
         const map: Record<string, boolean> = {}
-        settings.forEach((s: { from_username: string; ai_enabled: boolean }) => { map[s.from_username] = s.ai_enabled })
+        const reasons: Record<string, string | null> = {}
+        settings.forEach((s: { from_username: string; ai_enabled: boolean; paused_reason?: string | null }) => {
+          map[s.from_username] = s.ai_enabled
+          reasons[s.from_username] = s.paused_reason ?? null
+        })
         setAiMap(map)
+        setReasonMap(reasons)
       }
       setLoading(false)
 
@@ -135,10 +153,13 @@ export default function InboxPage() {
   const toggleAi = async (username: string, e: React.MouseEvent) => {
     e.stopPropagation()
     const next = !(aiMap[username] ?? true)
+    // Manually flipping the switch = you're handling it (or handing it back).
+    const reason = next ? null : 'owner'
     setAiMap(prev => ({ ...prev, [username]: next })) // optimistic
+    setReasonMap(prev => ({ ...prev, [username]: reason }))
     try {
       await supabase.from('conversation_settings').upsert(
-        { client_id: clientId, from_username: username, ai_enabled: next, updated_at: new Date().toISOString() },
+        { client_id: clientId, from_username: username, ai_enabled: next, paused_reason: reason, updated_at: new Date().toISOString() },
         { onConflict: 'client_id,from_username' }
       )
     } catch {
@@ -160,6 +181,7 @@ export default function InboxPage() {
       isLead: msgs.some(m => m.is_lead),
       score: scoreMessage(lastInbound.content),
       aiEnabled: aiMap[username] ?? true,
+      pausedReason: reasonMap[username] ?? null,
     }
   }).sort((a, b) => new Date(b.last.created_at).getTime() - new Date(a.last.created_at).getTime())
 
@@ -265,7 +287,7 @@ export default function InboxPage() {
                   <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.6rem', fontWeight: 500, background: tone.bg, color: tone.color, padding: '0.12rem 0.45rem', borderRadius: '5px', textTransform: 'uppercase', ...tabular }}>{tone.label} {conv.score}</span>
                     {conv.isLead && <span style={{ fontSize: '0.6rem', fontWeight: 500, background: c.warnBg, color: c.warn, border: `1px solid ${c.warnBorder}`, padding: '0.12rem 0.4rem', borderRadius: '5px' }}>LEAD</span>}
-                    {!conv.aiEnabled && <span style={{ fontSize: '0.6rem', fontWeight: 500, background: c.surfaceAlt, color: c.muted, padding: '0.12rem 0.4rem', borderRadius: '5px' }}>YOU</span>}
+                    {!conv.aiEnabled && <span style={{ fontSize: '0.6rem', fontWeight: 500, background: c.surfaceAlt, color: c.muted, padding: '0.12rem 0.4rem', borderRadius: '5px' }}>{pauseInfo(conv.pausedReason).badge}</span>}
                     <span style={{ fontSize: '0.66rem', color: c.faint, marginLeft: 'auto' }}>{timeAgo(conv.last.created_at)}</span>
                   </div>
                 </div>
@@ -292,7 +314,7 @@ export default function InboxPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: c.surface, border: `1px solid ${c.border}`, borderRadius: radius.lg, padding: '0.6rem 0.9rem' }}>
                     <div style={{ textAlign: 'right' }}>
                       <p style={{ fontSize: '0.78rem', fontWeight: 500, color: c.ink }}>Walter AI</p>
-                      <p style={{ fontSize: '0.68rem', color: selected.aiEnabled ? c.good : c.faint }}>{selected.aiEnabled ? 'Replying automatically' : 'Paused — you reply'}</p>
+                      <p style={{ fontSize: '0.68rem', color: selected.aiEnabled ? c.good : c.faint }}>{selected.aiEnabled ? 'Replying automatically' : pauseInfo(selected.pausedReason).detail}</p>
                     </div>
                     <AiSwitch on={selected.aiEnabled} onClick={(e) => toggleAi(selected.username, e)} size="md" />
                   </div>
@@ -300,8 +322,16 @@ export default function InboxPage() {
               </div>
 
               {!selected.aiEnabled && (
-                <div style={{ background: c.surface, border: `1px solid ${c.border}`, borderLeft: '2px solid #22c55e', borderRadius: '0 8px 8px 0', padding: '0.8rem 1rem', marginBottom: '1.5rem' }}>
-                  <p style={{ fontSize: '0.82rem', color: c.body }}>You&apos;re handling this chat. Walter won&apos;t auto-reply to @{nameFor(selected.username)} until you switch it back on.</p>
+                <div style={{ background: c.surface, border: `1px solid ${c.border}`, borderLeft: `2px solid ${selected.pausedReason && selected.pausedReason !== 'owner' ? c.warn : '#22c55e'}`, borderRadius: '0 8px 8px 0', padding: '0.8rem 1rem', marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.82rem', color: c.body }}>
+                    {selected.pausedReason === 'troll'
+                      ? <>Walter stepped back from @{nameFor(selected.username)} — it looked like they were wasting time. It’ll pick back up automatically if they show genuine buying interest, or switch it on to reply now.</>
+                      : selected.pausedReason === 'optout'
+                      ? <>@{nameFor(selected.username)} asked to stop hearing from you, so Walter went quiet. It’ll only re-engage if they come back with clear buying intent — or switch it on to reply yourself.</>
+                      : selected.pausedReason === 'abuse'
+                      ? <>Walter stepped back from @{nameFor(selected.username)} after abusive messages. It stays quiet unless they return with genuine buying intent — or switch it on to handle it yourself.</>
+                      : <>You&apos;re handling this chat. Walter won&apos;t auto-reply to @{nameFor(selected.username)} until you switch it back on.</>}
+                  </p>
                 </div>
               )}
 

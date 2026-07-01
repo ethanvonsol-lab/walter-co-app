@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
       voiceProfile = data?.voice_profile || ''
     }
 
-    // User-clicked, low-volume, quality-sensitive → Opus 4.8 (the high-volume
+    // User-clicked, low-volume, quality-sensitive → Sonnet (the high-volume
     // auto-replies stay on Haiku in /api/reply + the webhook).
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-sonnet-5',
       max_tokens: 300,
       system: `You write Instagram DM follow-ups on behalf of a real person, in their exact voice.
 

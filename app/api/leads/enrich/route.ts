@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 // Lead profiling (Day 3). Given a lead, read its DM conversation and extract a
 // sales qualification profile — budget, timeline, pain point, decision-maker —
 // from what the PROSPECT actually said. User-triggered + low-volume, so it uses
-// Opus with structured JSON (mirrors /api/insights). Result is cached on the
+// Sonnet with structured JSON (mirrors /api/insights). Result is cached on the
 // leads row (enriched_at) so it only runs once per lead unless refreshed.
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -61,12 +61,12 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-sonnet-5',
       max_tokens: 300,
       system: `You extract a sales qualification profile from an Instagram DM conversation between a business ("You") and a prospect ("Them"). Use ONLY what the PROSPECT actually revealed — never guess or infer beyond what's said.
 
 Return four short fields:
-- budget_range: their budget or price sensitivity (e.g. "$5k–10k", "budget-conscious", "premium ok").
+- budget_range: their budget or price sensitivity (e.g. "$5k–10k", "budget-conscious", "premium ok"). Use a number/range ONLY if the prospect actually stated one. Never infer a budget from enthusiasm — someone saying they're "really interested" or "love it" reveals NO budget, so that is "Unknown".
 - timeline: how soon they want to act (e.g. "this month", "ASAP", "just exploring").
 - pain_point: the core problem they want solved, in a few words.
 - decision_maker: whether they're the one who decides (e.g. "Yes", "Needs partner's sign-off").

@@ -26,19 +26,26 @@ const DEFAULT_DEAL_VALUE = 1500
 // plus whether they left contact details and how recent it is. Heuristic and
 // instant — no extra AI call. The dashboard's "Act now" brief is the AI view;
 // this is the always-on pipeline ranking.
+//
+// Weighting note: CONCRETE buying signals (wanting to buy/book, asking price,
+// leaving contact details) drive the score. Soft enthusiasm — "interested",
+// "looking", "keen" — only nudges it. Someone repeatedly gushing that they're
+// "interested" with no specifics is a mild lead, NOT a hot one; over-weighting
+// enthusiasm is exactly what used to inflate a single chatty person's value.
 function scoreLead(intentSummary: string, createdAt: string): number {
   const t = (intentSummary || '').toLowerCase()
-  let score = 20 // baseline so a real lead never reads as zero intent
-  const high = ['buy', 'purchase', 'book', 'sign up', 'signup', 'invest', 'hire', 'ready', 'join', 'enroll', 'deposit', 'work with', 'get started']
+  let score = 15 // baseline so a real lead never reads as zero intent
+  const high = ['buy', 'purchase', 'book', 'sign up', 'signup', 'invest', 'hire', 'ready', 'enroll', 'deposit', 'get started', 'pay']
   const pricing = ['price', 'cost', 'how much', 'pricing', 'quote', 'rate', 'fee']
+  const contact = ['email', 'call', 'phone', 'whatsapp', 'text me', 'dm me']
   const interest = ['interested', 'want', 'looking', 'need', 'keen', 'curious', 'info', 'details', 'available']
-  if (high.some(k => t.includes(k))) score += 40
-  if (pricing.some(k => t.includes(k))) score += 25
-  if (interest.some(k => t.includes(k))) score += 15
-  if (/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/.test(t) || t.includes('email')) score += 20
+  if (high.some(k => t.includes(k))) score += 35
+  if (pricing.some(k => t.includes(k))) score += 22
+  if (/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/.test(t) || contact.some(k => t.includes(k))) score += 18
+  if (interest.some(k => t.includes(k))) score += 8 // enthusiasm alone ≠ hot
   const hrs = (Date.now() - new Date(createdAt).getTime()) / 3600000
-  if (hrs <= 24) score += 12
-  else if (hrs <= 72) score += 6
+  if (hrs <= 24) score += 8
+  else if (hrs <= 72) score += 4
   return Math.max(0, Math.min(100, Math.round(score)))
 }
 
@@ -155,22 +162,38 @@ export default function LeadsPage() {
     return { bg: c.warnBg, color: c.warn, border: c.warnBorder }
   }
 
+  // One row per person. New leads are deduped at the webhook now, but older data
+  // can hold several lead rows for the same chatty sender — collapse them to the
+  // most recent (`leads` is already newest-first) so one person is one lead and
+  // never double-counts in the pipeline total below.
+  const seenUser = new Set<string>()
+  const uniqueLeads = leads.filter(l => {
+    if (seenUser.has(l.from_username)) return false
+    seenUser.add(l.from_username)
+    return true
+  })
+
   // Decorate with score + estimated value, then rank.
-  const scored = leads.map(l => {
+  const scored = uniqueLeads.map(l => {
     const score = scoreLead(l.intent_summary, l.created_at)
     return { ...l, score, value: Math.round((score / 100) * avgDealValue) }
   })
   const ranked = [...scored].sort((a, b) =>
     sortMode === 'hot' ? b.score - a.score : new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
-  const selectedScored = selected ? scored.find(l => l.id === selected.id) : null
+  // Resolve by id, but fall back to the same person's current (deduped) row so
+  // the detail pane never blanks out if a newer lead row supersedes the selected
+  // one — e.g. a realtime message arrives from someone already on screen.
+  const selectedScored = selected
+    ? (scored.find(l => l.id === selected.id) || scored.find(l => l.from_username === selected.from_username) || null)
+    : null
   // Show the resolved @handle when we have it, otherwise the raw id.
   const nameFor = (u: string) => handleMap[u] || u
 
-  // Pipeline value = sum of estimated value for still-open leads.
+  // Pipeline value = sum of estimated value for still-open leads (one per person).
   const open = scored.filter(l => l.status === 'new' || l.status === 'contacted')
   const pipelineValue = open.reduce((sum, l) => sum + l.value, 0)
-  const newCount = leads.filter(l => l.status === 'new').length
+  const newCount = scored.filter(l => l.status === 'new').length
 
   const chip = (active: boolean): React.CSSProperties => ({
     padding: '0.3rem 0.85rem', borderRadius: radius.pill, border: `1px solid ${active ? c.ink : c.border}`,
@@ -195,7 +218,7 @@ export default function LeadsPage() {
             </div>
             <h1 style={{ ...pageTitle, fontSize: '1.4rem', marginBottom: '0.3rem' }}>Leads</h1>
             <p style={{ color: c.muted, fontSize: '0.78rem', marginBottom: '1rem', ...tabular }}>
-              {leads.length} total · {newCount} new · <span style={{ color: c.ink, fontWeight: 500 }}>${pipelineValue.toLocaleString()}</span> open
+              {scored.length} total · {newCount} new · <span style={{ color: c.ink, fontWeight: 500 }}>${pipelineValue.toLocaleString()}</span> open
             </p>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               {([['hot', 'Hottest'], ['recent', 'Recent']] as const).map(([mode, lbl]) => (
