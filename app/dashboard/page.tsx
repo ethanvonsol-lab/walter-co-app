@@ -73,6 +73,12 @@ interface BriefingLead {
 // Fallback when a client hasn't set their own average deal value yet.
 const DEFAULT_DEAL_VALUE = 1500
 
+// Not every lead becomes a paying customer. The forecast used to value each
+// projected lead at the FULL deal value (an implicit 100% close rate), which
+// wildly overstated pipeline (e.g. 94 leads → $141k). Apply a conservative
+// close-rate assumption so the projection reflects expected *closed* revenue.
+const ASSUMED_CLOSE_RATE = 0.2
+
 export default function Dashboard() {
   const [clientName, setClientName] = useState('')
   const [avgDealValue, setAvgDealValue] = useState(DEFAULT_DEAL_VALUE)
@@ -207,7 +213,7 @@ export default function Dashboard() {
   const fc14 = forecastNext(series30, 14)
   const projDMs = Math.round(forecastNext(series30, 30).reduce((a, b) => a + b, 0))
   const projLeads = Math.round(projDMs * (week.conv / 100))
-  const projPipeline = projLeads * avgDealValue
+  const projPipeline = Math.round(projLeads * avgDealValue * ASSUMED_CLOSE_RATE)
 
   const handleTest = async () => {
     setLoading(true)
@@ -328,7 +334,7 @@ export default function Dashboard() {
           </div>
           <AreaForecast actual={series30} forecast={fc14} />
           <p style={{ fontSize: '0.85rem', color: c.muted, lineHeight: 1.6, borderTop: `1px solid ${c.border}`, paddingTop: '0.9rem', marginTop: '0.9rem' }}>
-            On your last 30 days&apos; trend, you&apos;re on track for about <strong style={{ color: c.ink, fontWeight: 600 }}>{projDMs} DMs</strong> and <strong style={{ color: c.ink, fontWeight: 600 }}>{projLeads} leads</strong> next month{projPipeline > 0 ? <> — roughly <strong style={{ color: c.ink, fontWeight: 600 }}>${projPipeline.toLocaleString()}</strong> of new pipeline</> : ''}.
+            On your last 30 days&apos; trend, you&apos;re on track for about <strong style={{ color: c.ink, fontWeight: 600 }}>{projDMs} DMs</strong> and <strong style={{ color: c.ink, fontWeight: 600 }}>{projLeads} leads</strong> next month{projPipeline > 0 ? <> — roughly <strong style={{ color: c.ink, fontWeight: 600 }}>${projPipeline.toLocaleString()}</strong> in estimated revenue at a {Math.round(ASSUMED_CLOSE_RATE * 100)}% close rate</> : ''}.
           </p>
         </div>
 
